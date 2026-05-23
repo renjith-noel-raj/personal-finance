@@ -28,7 +28,7 @@ After each step there's a **✅ What you should see** so you can confirm it work
 
 ⚠️ This app uses **Cloud Firestore**, *not* "Realtime Database". Make sure you pick the right one.
 
-1. In the left sidebar: **Build → Firestore Database**.
+1. In the left sidebar, open **Firestore Database**. (Can't find it? Type "Firestore" in the console's **search bar** at the top — the sidebar grouping changes between console versions.)
 2. Click **Create database**.
 3. Choose a **location/region** close to you (you can't change this later).
 4. Select **Production mode** → **Next/Create**.
@@ -68,7 +68,7 @@ service cloud.firestore {
 
 ## Step 4 — Enable Google sign-in
 
-1. Left sidebar: **Build → Authentication** → **Get started**.
+1. In the left sidebar, open **Authentication** → **Get started**. (Can't find it? Type "Authentication" in the console's **search bar** at the top.)
 2. Open the **Sign-in method** tab.
 3. Click **Google** → toggle **Enable**.
 4. Pick a **support email** → **Save**.
@@ -77,14 +77,20 @@ service cloud.firestore {
 
 ---
 
-## Step 5 — Authorize your domains
+## Step 5 — Authorize the app's domain
 
-`localhost` is authorized automatically, so local development works out of the box. You only need this step for a **deployed** site.
+`localhost` is authorized automatically, so local development works out of the box. But to sign in on the **hosted dashboard**, you must also authorize the domain it runs on — otherwise sign-in fails there with `auth/unauthorized-domain`.
 
 1. **Authentication → Settings → Authorized domains**.
-2. Click **Add domain** and enter your deployed domain (e.g. `myfinance.netlify.app`).
+2. Click **Add domain** and enter the hosted domain — **exactly this**, with no `https://`, no path, and no trailing slash:
 
-✅ **What you should see:** your domain in the authorized list (alongside `localhost`).
+   ```
+   renjith-noel-raj.github.io
+   ```
+
+   > Running your own copy somewhere else instead? Add *that* domain (e.g. `myfinance.netlify.app`). The rule of thumb: authorize the **hostname in your browser's address bar** when you use the app.
+
+✅ **What you should see:** `renjith-noel-raj.github.io` in the authorized list (alongside `localhost`).
 
 ---
 
