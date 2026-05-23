@@ -10,8 +10,11 @@ function AppShell() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-slate-500">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex items-center gap-2 text-slate-500">
+          <span className="h-4 w-4 rounded-full border-2 border-slate-300 border-t-brand-600 animate-spin" />
+          Loading…
+        </div>
       </div>
     );
   }

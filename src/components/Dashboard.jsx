@@ -9,6 +9,7 @@ import ExpensesTab from './ExpensesTab.jsx';
 import IncomeTab from './IncomeTab.jsx';
 import GoalsTab from './GoalsTab.jsx';
 import DataTab from './DataTab.jsx';
+import { DashboardSkeleton } from './Skeleton.jsx';
 
 export default function Dashboard() {
   const data = useFinanceData();
@@ -27,7 +28,7 @@ export default function Dashboard() {
         <div className="text-xs text-slate-400 break-all max-w-md">
           {data.loadError?.code || data.loadError?.message || String(data.loadError)}
         </div>
-        <button onClick={data.reload} className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm">
+        <button onClick={data.reload} className="btn-primary">
           Retry
         </button>
       </div>
@@ -35,7 +36,7 @@ export default function Dashboard() {
   }
 
   if (!data.loaded) {
-    return <div className="min-h-screen flex items-center justify-center text-slate-500">Loading data...</div>;
+    return <DashboardSkeleton />;
   }
 
   return <DashboardInner data={data} user={user} selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth} activeTab={activeTab} setActiveTab={setActiveTab} />;
@@ -216,7 +217,7 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
   }, [activeExpenses, availableIncome, netSavings]);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+    <div className="min-h-screen p-4 pb-24 md:p-6 md:pb-6">
       <div className="max-w-7xl mx-auto">
         <Header selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth} allMonths={allMonths} user={user} />
         <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />

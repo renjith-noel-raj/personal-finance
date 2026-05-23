@@ -188,11 +188,11 @@ export default function DataTab({ expenses, setExpenses, incomes, setIncomes, ex
   return (
     <div className="space-y-4">
       {status && (
-        <div className={`p-3 rounded-lg text-sm ${status.isError ? 'bg-rose-50 text-rose-800 border border-rose-200' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'}`}>{status.msg}</div>
+        <div className={`p-3 rounded-xl text-sm ${status.isError ? 'bg-rose-50 text-rose-800 border border-rose-200' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'}`}>{status.msg}</div>
       )}
 
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2"><Database size={16} /> Where is my data?</h3>
+      <div className="card p-4">
+        <h3 className="panel-title mb-3 flex items-center gap-2"><Database size={16} className="text-brand-600" /> Where is my data?</h3>
         <div className="text-sm text-slate-600 space-y-2">
           {storageMode === 'firebase' ? (
             <p>Synced to <strong>your Firebase project</strong>. Signed in as <strong>{user?.email}</strong>.</p>
@@ -200,7 +200,7 @@ export default function DataTab({ expenses, setExpenses, incomes, setIncomes, ex
             <p>Stored locally in this browser (IndexedDB). Only this device has access.</p>
           )}
           <p className="text-amber-700">⚠ Export a backup regularly.</p>
-          <div className="flex flex-wrap gap-4 text-xs text-slate-500 mt-2 pt-2 border-t border-slate-200">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500 mt-2 pt-2 border-t border-slate-200">
             <span><strong>{expenses.length}</strong> expense entries</span>
             <span><strong>{incomes.length}</strong> income entries</span>
             <span><strong>{goals.length}</strong> goals</span>
@@ -209,27 +209,27 @@ export default function DataTab({ expenses, setExpenses, incomes, setIncomes, ex
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2"><Download size={16} /> Export Data</h3>
+      <div className="card p-4">
+        <h3 className="panel-title mb-3 flex items-center gap-2"><Download size={16} className="text-brand-600" /> Export Data</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <button onClick={exportExpensesCsv} className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm">
+          <button onClick={exportExpensesCsv} className="flex items-center gap-2 px-3 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-sm transition">
             <FileText size={14} className="text-slate-500" /><span className="flex-1 text-left">Expenses (CSV)</span><Download size={12} className="text-slate-400" />
           </button>
-          <button onClick={exportIncomesCsv} className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm">
+          <button onClick={exportIncomesCsv} className="flex items-center gap-2 px-3 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-sm transition">
             <FileText size={14} className="text-slate-500" /><span className="flex-1 text-left">Income (CSV)</span><Download size={12} className="text-slate-400" />
           </button>
-          <button onClick={exportJson} className="md:col-span-2 flex items-center gap-2 px-3 py-2 border border-indigo-200 bg-indigo-50 rounded-lg hover:bg-indigo-100 text-sm">
-            <Database size={14} className="text-indigo-600" /><span className="flex-1 text-left text-indigo-900 font-medium">Full Backup (JSON)</span><Download size={12} className="text-indigo-600" />
+          <button onClick={exportJson} className="md:col-span-2 flex items-center gap-2 px-3 py-2.5 border border-brand-200 bg-brand-50 rounded-xl hover:bg-brand-100 text-sm transition">
+            <Database size={14} className="text-brand-700" /><span className="flex-1 text-left text-brand-900 font-medium">Full Backup (JSON)</span><Download size={12} className="text-brand-700" />
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2"><Upload size={16} /> Import Data</h3>
+      <div className="card p-4">
+        <h3 className="panel-title mb-3 flex items-center gap-2"><Upload size={16} className="text-brand-600" /> Import Data</h3>
         <div className="space-y-3">
           <div>
             <div className="text-sm font-medium text-slate-700 mb-2">Restore from full backup</div>
-            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2 border border-indigo-200 bg-indigo-50 rounded-lg hover:bg-indigo-100 text-sm text-indigo-900">
+            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2.5 border border-brand-200 bg-brand-50 rounded-xl hover:bg-brand-100 text-sm text-brand-900 transition">
               <Upload size={14} /> Choose JSON backup file
             </button>
             <input ref={fileInputRef} type="file" accept=".json,application/json" onChange={importJson} className="hidden" />
@@ -238,11 +238,11 @@ export default function DataTab({ expenses, setExpenses, incomes, setIncomes, ex
           <div className="pt-3 border-t border-slate-200">
             <div className="text-sm font-medium text-slate-700 mb-2">Add from CSV</div>
             <div className="flex flex-wrap gap-2 items-center">
-              <select value={csvImportType} onChange={e => setCsvImportType(e.target.value)} className="px-2 py-2 text-sm border border-slate-200 rounded-md bg-white">
+              <select value={csvImportType} onChange={e => setCsvImportType(e.target.value)} className="input w-auto px-2 py-2">
                 <option value="expenses">Expenses CSV</option>
                 <option value="income">Income CSV</option>
               </select>
-              <button onClick={() => csvInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm">
+              <button onClick={() => csvInputRef.current?.click()} className="flex items-center gap-2 px-3 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-sm transition">
                 <Upload size={14} /> Choose CSV file
               </button>
               <input ref={csvInputRef} type="file" accept=".csv,text/csv" onChange={importCsv} className="hidden" />
@@ -251,15 +251,15 @@ export default function DataTab({ expenses, setExpenses, incomes, setIncomes, ex
         </div>
       </div>
 
-      <div className="bg-rose-50 border border-rose-200 rounded-xl p-4">
+      <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4">
         <h3 className="font-semibold text-rose-900 mb-2 flex items-center gap-2"><Trash2 size={16} /> Danger Zone</h3>
         <p className="text-sm text-rose-700 mb-3">Clear all entries, budgets, and goals. Categories are kept. Cannot be undone.</p>
         {!confirmReset ? (
-          <button onClick={() => setConfirmReset(true)} className="px-3 py-2 bg-white border border-rose-300 text-rose-700 rounded-lg text-sm hover:bg-rose-100">Clear all data...</button>
+          <button onClick={() => setConfirmReset(true)} className="px-3 py-2 bg-white border border-rose-300 text-rose-700 rounded-xl text-sm hover:bg-rose-100 transition">Clear all data...</button>
         ) : (
-          <div className="flex gap-2">
-            <button onClick={resetAll} className="px-3 py-2 bg-rose-600 text-white rounded-lg text-sm hover:bg-rose-700 font-medium">Yes, delete everything</button>
-            <button onClick={() => setConfirmReset(false)} className="px-3 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm">Cancel</button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={resetAll} className="btn-danger">Yes, delete everything</button>
+            <button onClick={() => setConfirmReset(false)} className="btn-ghost">Cancel</button>
           </div>
         )}
       </div>

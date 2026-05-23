@@ -2,12 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
-  height: 100%;
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    /* Prevents any stray wide element from forcing horizontal scroll / zoom-out on mobile */
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    @apply font-sans bg-slate-100 text-slate-800;
+    /* Finance app: keep all figures aligned */
+    font-variant-numeric: tabular-nums;
+  }
+  /* Larger tap targets for controls on touch devices */
+  button, [role="button"] { touch-action: manipulation; }
 }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl border border-slate-200 shadow-card;
+  }
+  .panel-title {
+    @apply font-semibold text-slate-800;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-xl font-medium transition
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 focus-visible:ring-offset-1
+           disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-sm { @apply px-3 py-2 text-sm; }
+  .btn-primary { @apply btn btn-sm bg-brand-600 text-white hover:bg-brand-700 shadow-sm; }
+  .btn-ghost   { @apply btn btn-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50; }
+  .btn-danger  { @apply btn btn-sm bg-rose-600 text-white hover:bg-rose-700; }
+  .icon-btn    { @apply inline-flex items-center justify-center rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition
+                        focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50; }
+  .input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800
+           placeholder:text-slate-400 transition
+           focus:outline-none focus:border-brand-400 focus-visible:ring-2 focus-visible:ring-brand-500/40;
+  }
+  .chip { @apply inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold leading-tight; }
+  .link { @apply text-brand-700 font-medium hover:text-brand-800; }
+  .skeleton { @apply animate-pulse rounded-lg bg-slate-200/70; }
 }
