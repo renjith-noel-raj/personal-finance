@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, PiggyBank, Target, TrendingUp, Wallet, Repeat } from 'lucide-react';
+import { Plus, Trash2, Edit2, PiggyBank, Target, TrendingUp, Wallet, Repeat, CalendarCheck } from 'lucide-react';
 import { formatINR } from './shared';
 import Modal from './Modal.jsx';
 
@@ -60,12 +60,27 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
     return s + Math.max(0, (Number(g.target || 0) - Number(g.saved || 0)) / monthsLeft);
   }, 0);
 
+  // Priority = earliest deadline first (undated goals last).
   const sortedGoals = [...goals].sort((a, b) => {
     if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
     if (a.deadline) return -1;
     if (b.deadline) return 1;
     return 0;
   });
+
+  // Fund goals one-by-one in priority order at the monthly pace → projected finish per goal,
+  // and an overall "all goals achieved by" date (the last goal's finish).
+  const overallEta = (pace > 0 && totalRemaining > 0) ? monthLabelFromNow(totalRemaining / pace) : null;
+  const allDone = goals.length > 0 && totalRemaining === 0;
+  const goalEtas = {};
+  {
+    let cum = 0;
+    sortedGoals.forEach(g => {
+      const rem = Math.max(0, Number(g.target || 0) - Number(g.saved || 0));
+      cum += rem;
+      goalEtas[g.id] = (pace > 0 && rem > 0) ? monthLabelFromNow(cum / pace) : null;
+    });
+  }
 
   // ---- handlers ----
   const resetForm = () => { setName(''); setTarget(''); setSaved(''); setDeadline(''); setEditingId(null); setShowForm(false); };
@@ -155,6 +170,14 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
               <div><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Needed / mo</div><div className="text-base font-bold text-brand-700">{formatINR(totalMonthlyNeed)}</div></div>
             </div>
           </div>
+          {(allDone || overallEta) && (
+            <div className="mt-3 flex items-center gap-2 text-sm font-medium text-brand-800 bg-brand-50 border border-brand-100 rounded-lg px-3 py-2">
+              <CalendarCheck size={16} className="text-brand-600 flex-shrink-0" />
+              {allDone
+                ? <span>All goals complete 🎉</span>
+                : <span>All goals funded by <strong>~{overallEta}</strong> at your current pace <span className="text-brand-700/70">(funded in deadline-priority order)</span></span>}
+            </div>
+          )}
           {feasibility && (
             <div className={`mt-3 text-sm px-3 py-2 rounded-lg border ${feasClass[feasibility.tone]}`}>{feasibility.text}</div>
           )}
@@ -203,8 +226,7 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
               else if (requiredMonthly <= pace * 1.5) badge = { label: 'Tight', cls: 'bg-amber-100 text-amber-700' };
               else badge = { label: 'Ambitious', cls: 'bg-rose-100 text-rose-700' };
             }
-            const soloFinish = (!done && pace > 0 && remaining > 0)
-              ? monthLabelFromNow(remaining / pace) : null;
+            const eta = !done ? goalEtas[g.id] : null;
 
             return (
               <div key={g.id} className="border border-slate-200 rounded-xl p-3 flex gap-3">
@@ -229,7 +251,7 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-2">
                     {g.deadline && <span>Deadline: {g.deadline}</span>}
                     {requiredMonthly !== null && !done && <span className="text-slate-700 font-medium">Need {formatINR(requiredMonthly)}/mo{monthsLeft > 0 ? ` · ${monthsLeft} mo left` : ''}</span>}
-                    {soloFinish && <span className="text-brand-700">≈ {soloFinish} at your pace*</span>}
+                    {eta && <span className="text-brand-700">≈ {eta}*</span>}
                     <div className="flex items-center gap-3 ml-auto">
                       {!done && <button onClick={() => openMove(g, 'add')} className="text-brand-700 font-semibold hover:text-brand-800">+ Contribute</button>}
                       {Number(g.saved || 0) > 0 && <button onClick={() => openMove(g, 'withdraw')} className="text-slate-500 font-medium hover:text-slate-700">Withdraw</button>}
@@ -241,7 +263,7 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
           })}
         </div>
         {goals.length > 0 && pace > 0 && (
-          <p className="text-[11px] text-slate-400 mt-3">*Projected finish assumes your whole monthly surplus ({usingFixed ? 'fixed income − fixed bills' : '6-month average'}) goes to that goal — the app tracks total saved, not per-goal contributions.</p>
+          <p className="text-[11px] text-slate-400 mt-3">*Projected dates assume you fund goals in deadline-priority order using your monthly surplus ({usingFixed ? 'fixed income − fixed bills' : '6-month average'}).</p>
         )}
       </div>
 
