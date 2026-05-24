@@ -73,14 +73,11 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
   const overallEta = (pace > 0 && totalRemaining > 0) ? monthLabelFromNow(totalRemaining / pace) : null;
   const allDone = goals.length > 0 && totalRemaining === 0;
   const goalEtas = {};
-  {
-    let cum = 0;
-    sortedGoals.forEach(g => {
-      const rem = Math.max(0, Number(g.target || 0) - Number(g.saved || 0));
-      cum += rem;
-      goalEtas[g.id] = (pace > 0 && rem > 0) ? monthLabelFromNow(cum / pace) : null;
-    });
-  }
+  sortedGoals.forEach(g => {
+    const rem = Math.max(0, Number(g.target || 0) - Number(g.saved || 0));
+    // Per-goal "focused" estimate: if the whole monthly surplus went into this one goal.
+    goalEtas[g.id] = (pace > 0 && rem > 0) ? monthLabelFromNow(rem / pace) : null;
+  });
 
   // ---- handlers ----
   const resetForm = () => { setName(''); setTarget(''); setSaved(''); setDeadline(''); setEditingId(null); setShowForm(false); };
@@ -251,7 +248,7 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-2">
                     {g.deadline && <span>Deadline: {g.deadline}</span>}
                     {requiredMonthly !== null && !done && <span className="text-slate-700 font-medium">Need {formatINR(requiredMonthly)}/mo{monthsLeft > 0 ? ` · ${monthsLeft} mo left` : ''}</span>}
-                    {eta && <span className="text-brand-700">≈ {eta}*</span>}
+                    {eta && <span className="text-brand-700">≈ {eta} if focused*</span>}
                     <div className="flex items-center gap-3 ml-auto">
                       {!done && <button onClick={() => openMove(g, 'add')} className="text-brand-700 font-semibold hover:text-brand-800">+ Contribute</button>}
                       {Number(g.saved || 0) > 0 && <button onClick={() => openMove(g, 'withdraw')} className="text-slate-500 font-medium hover:text-slate-700">Withdraw</button>}
@@ -263,7 +260,7 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
           })}
         </div>
         {goals.length > 0 && pace > 0 && (
-          <p className="text-[11px] text-slate-400 mt-3">*Projected dates assume you fund goals in deadline-priority order using your monthly surplus ({usingFixed ? 'fixed income − fixed bills' : '6-month average'}).</p>
+          <p className="text-[11px] text-slate-400 mt-3">*Each goal's date assumes your whole monthly surplus ({usingFixed ? 'fixed income − fixed bills' : '6-month average'}) goes into that one goal. The “all goals” date above instead funds every goal in deadline-priority order.</p>
         )}
       </div>
 
