@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import { signOutUser } from '../lib/firebase';
-import { LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, ChevronLeft, ChevronRight, HelpCircle } from 'lucide-react';
 import { currentMonth } from './shared';
 import Modal from './Modal.jsx';
 
-export default function Header({ selectedMonth, setSelectedMonth, allMonths, user }) {
+export default function Header({ selectedMonth, setSelectedMonth, allMonths, user, onHelp }) {
   const { storageMode, resetSetup } = useApp();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -58,6 +58,11 @@ export default function Header({ selectedMonth, setSelectedMonth, allMonths, use
               className="px-2 py-1 rounded-md text-xs text-brand-700 font-semibold hover:bg-brand-50 whitespace-nowrap">Today</button>
           )}
         </div>
+        <button onClick={onHelp}
+          className="icon-btn border border-slate-200 bg-white shadow-card"
+          title="How to use" aria-label="How to use this app">
+          <HelpCircle size={16} />
+        </button>
         <button onClick={() => setConfirmOpen(true)}
           className="icon-btn border border-slate-200 bg-white shadow-card"
           title="Switch setup / Sign out" aria-label="Switch setup or sign out">

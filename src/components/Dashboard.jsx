@@ -10,6 +10,7 @@ import IncomeTab from './IncomeTab.jsx';
 import GoalsTab from './GoalsTab.jsx';
 import DataTab from './DataTab.jsx';
 import { DashboardSkeleton } from './Skeleton.jsx';
+import HelpPage from './HelpPage.jsx';
 
 export default function Dashboard() {
   const data = useFinanceData();
@@ -50,6 +51,7 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
     budgets, setBudgets, goals, setGoals,
   } = data;
 
+  const [showHelp, setShowHelp] = useState(false);
   const isExpCatActive = (id) => expCatActive[id] !== false;
   const isIncCatActive = (id) => incCatActive[id] !== false;
 
@@ -240,7 +242,7 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
   return (
     <div className="min-h-screen p-4 pb-24 md:p-6 md:pb-6">
       <div className="max-w-7xl mx-auto">
-        <Header selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth} allMonths={allMonths} user={user} />
+        <Header selectedMonth={selectedMonth} setSelectedMonth={setSelectedMonth} allMonths={allMonths} user={user} onHelp={() => setShowHelp(true)} />
         <Tabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {activeTab === 'overview' && (
@@ -285,6 +287,8 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
             incCatActive={incCatActive} setIncCatActive={setIncCatActive}
           />
         )}
+
+        {showHelp && <HelpPage onClose={() => setShowHelp(false)} />}
       </div>
     </div>
   );
