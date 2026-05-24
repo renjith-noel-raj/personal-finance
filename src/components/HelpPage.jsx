@@ -95,7 +95,8 @@ export default function HelpPage({ onClose }) {
         <Section icon={Target} title="6. Goals">
           <UL>
             <li><Term>Portfolio summary</Term> — an overall progress ring plus Allocated / Target / Remaining / Needed-per-month, an <Term>“all goals funded by” date</Term> (funds goals in deadline-priority order at your monthly pace), and a <Term>feasibility banner</Term> comparing what your deadlines need vs your reliable monthly pace.</li>
-            <li><Term>Each goal</Term> shows a progress ring, a status badge (Achievable / Tight / Ambitious / Overdue / Complete), required ₹/mo, and a projected <Term>“if focused” date</Term> — when it'd be done if your whole monthly surplus went into that one goal. Edit or delete with the pencil/trash. Goals sort by nearest deadline (highest priority first).</li>
+            <li><Term>Each goal</Term> shows a progress ring, a status badge (Achievable / Tight / Ambitious / Overdue / Complete), required ₹/mo, and a projected finish date. Edit or delete with the pencil/trash. Goals sort by nearest deadline (highest priority first).</li>
+            <li><Term>Focused vs Planned</Term> (toggle) — how the dates are projected: <Term>Focused</Term> = if your whole monthly surplus went into that one goal; <Term>Planned</Term> = set a monthly ₹ amount per goal (drawn from your fixed-income surplus), with a meter showing how much of the surplus you've committed (and a warning if you over-commit), plus an <Term>auto-split by priority</Term> helper.</li>
             <li><Term>Add / edit a goal</Term> — name, target ₹, already-saved ₹, and an optional deadline.</li>
             <li><Term>Savings pool</Term> — <Term>Unallocated savings</Term> = your all-time savings minus everything already allocated to goals.
               <UL>

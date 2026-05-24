@@ -23,7 +23,7 @@ A **privacy-first** personal finance tracker — track expenses, income, savings
 | **Overview** | Income / Reinvested / Available / Expenses / Net‑savings cards, auto **insights**, income‑consumed bar, **50/30/20** rule, expense & income breakdown donuts, **net by income source**, **spending by necessity** (drill‑down), categories‑by‑necessity, and a **6‑month trend** chart. |
 | **Expenses** | Categories (toggle/active, color, add/remove), **budgets** with progress, and entries tagged with **necessity** (Need/Want/Impulse) and **recurring** (fixed cost). Add / edit / delete. |
 | **Income** | Income sources, **profit vs loss** entries, **reinvest** flag, and **recurring** (fixed/predictable income, e.g. salary). Add / edit / delete. |
-| **Goals** | Create/edit goals, **progress rings**, **portfolio summary**, **feasibility** vs your predictable monthly surplus, achievability badges, per-goal "if focused" **and overall completion dates** (deadline-priority order), and a **savings pool** you can **contribute**/**withdraw**/**allocate** from. |
+| **Goals** | Create/edit goals, **progress rings**, **portfolio summary**, **feasibility** vs your predictable monthly surplus, achievability badges, per-goal & overall **completion dates** with a **Focused / Planned** toggle (planned monthly amounts per goal + surplus meter), and a **savings pool** you can **contribute**/**withdraw**/**allocate** from. |
 | **Data** | **CSV export** (expenses/income), full **JSON backup & restore**, **CSV import**, storage info, and a clear‑all "danger zone." |
 | **App** | Month navigation, light professional theme, mobile **bottom‑nav**, installable **PWA**, offline support. |
 

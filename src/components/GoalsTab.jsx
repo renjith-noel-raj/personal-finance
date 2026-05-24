@@ -43,6 +43,7 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
   const [contributeAmount, setContributeAmount] = useState('');
   const [allocGoalId, setAllocGoalId] = useState('');
   const [allocAmount, setAllocAmount] = useState('');
+  const [mode, setMode] = useState('focused'); // 'focused' | 'planned'
 
   // ---- aggregations + savings pool ----
   const totalTarget = goals.reduce((s, g) => s + Number(g.target || 0), 0);
@@ -68,16 +69,41 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
     return 0;
   });
 
-  // Fund goals one-by-one in priority order at the monthly pace → projected finish per goal,
-  // and an overall "all goals achieved by" date (the last goal's finish).
-  const overallEta = (pace > 0 && totalRemaining > 0) ? monthLabelFromNow(totalRemaining / pace) : null;
   const allDone = goals.length > 0 && totalRemaining === 0;
+  const planned = mode === 'planned';
+  const reqMonthly = (g) => {
+    const rem = Math.max(0, Number(g.target || 0) - Number(g.saved || 0));
+    return g.deadline ? rem / Math.max(1, monthsBetween(g.deadline)) : 0;
+  };
+
+  // Per-goal projected dates, plus (planned mode) effective monthly plans + total planned.
   const goalEtas = {};
+  const goalPlans = {};
+  let totalPlanned = 0;
   sortedGoals.forEach(g => {
     const rem = Math.max(0, Number(g.target || 0) - Number(g.saved || 0));
-    // Per-goal "focused" estimate: if the whole monthly surplus went into this one goal.
-    goalEtas[g.id] = (pace > 0 && rem > 0) ? monthLabelFromNow(rem / pace) : null;
+    if (planned) {
+      const plan = (g.monthlyPlan !== undefined && g.monthlyPlan !== null) ? Number(g.monthlyPlan) : reqMonthly(g);
+      goalPlans[g.id] = plan;
+      if (rem > 0) totalPlanned += plan;
+      goalEtas[g.id] = (plan > 0 && rem > 0) ? monthLabelFromNow(rem / plan) : null;
+    } else {
+      // Focused: whole monthly surplus into this one goal.
+      goalEtas[g.id] = (pace > 0 && rem > 0) ? monthLabelFromNow(rem / pace) : null;
+    }
   });
+  const remGoals = sortedGoals.filter(g => Math.max(0, Number(g.target || 0) - Number(g.saved || 0)) > 0);
+  const plannedAllSet = planned && remGoals.length > 0 && remGoals.every(g => goalPlans[g.id] > 0);
+  let overallEta = null;
+  if (planned) {
+    if (plannedAllSet) {
+      const maxMonths = Math.max(...remGoals.map(g => Math.max(0, Number(g.target || 0) - Number(g.saved || 0)) / goalPlans[g.id]));
+      overallEta = monthLabelFromNow(maxMonths);
+    }
+  } else {
+    overallEta = (pace > 0 && totalRemaining > 0) ? monthLabelFromNow(totalRemaining / pace) : null;
+  }
+  const planLeftover = pace - totalPlanned;
 
   // ---- handlers ----
   const resetForm = () => { setName(''); setTarget(''); setSaved(''); setDeadline(''); setEditingId(null); setShowForm(false); };
@@ -102,6 +128,20 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
   };
   const updateSaved = (id, amount) => setGoals(goals.map(g => g.id === id ? { ...g, saved: Number(amount) } : g));
   const remove = (id) => setGoals(goals.filter(g => g.id !== id));
+  const updatePlan = (id, value) => setGoals(goals.map(g => g.id === id ? { ...g, monthlyPlan: value === '' ? undefined : Number(value) } : g));
+  const autoSplit = () => {
+    let budget = pace;
+    const plans = {};
+    sortedGoals.forEach(g => {
+      const rem = Math.max(0, Number(g.target || 0) - Number(g.saved || 0));
+      if (rem <= 0) return;
+      const need = g.deadline ? rem / Math.max(1, monthsBetween(g.deadline)) : rem;
+      const give = Math.max(0, Math.min(need, budget));
+      budget -= give;
+      plans[g.id] = Math.round(give);
+    });
+    setGoals(goals.map(g => g.id in plans ? { ...g, monthlyPlan: plans[g.id] } : g));
+  };
 
   const move = (id, amount, mode) => {
     const amt = Number(amount);
@@ -167,12 +207,16 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
               <div><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Needed / mo</div><div className="text-base font-bold text-brand-700">{formatINR(totalMonthlyNeed)}</div></div>
             </div>
           </div>
-          {(allDone || overallEta) && (
+          {(allDone || overallEta || (planned && !allDone && remGoals.length > 0)) && (
             <div className="mt-3 flex items-center gap-2 text-sm font-medium text-brand-800 bg-brand-50 border border-brand-100 rounded-lg px-3 py-2">
               <CalendarCheck size={16} className="text-brand-600 flex-shrink-0" />
-              {allDone
-                ? <span>All goals complete 🎉</span>
-                : <span>All goals funded by <strong>~{overallEta}</strong> at your current pace <span className="text-brand-700/70">(funded in deadline-priority order)</span></span>}
+              {allDone ? (
+                <span>All goals complete 🎉</span>
+              ) : overallEta ? (
+                <span>All goals funded by <strong>~{overallEta}</strong> <span className="text-brand-700/70">({planned ? 'at your planned monthly amounts' : 'funded in deadline-priority order'})</span></span>
+              ) : (
+                <span className="text-brand-700/80">Set a monthly amount for every goal to project the overall date.</span>
+              )}
             </div>
           )}
           {feasibility && (
@@ -190,6 +234,16 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
           </button>
         </div>
 
+        {goals.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5 text-xs font-semibold">
+              <button onClick={() => setMode('focused')} className={`px-3 py-1.5 rounded-md transition ${!planned ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Focused</button>
+              <button onClick={() => setMode('planned')} className={`px-3 py-1.5 rounded-md transition ${planned ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Planned</button>
+            </div>
+            <span className="text-xs text-slate-500">{planned ? 'Set a monthly amount per goal from your surplus.' : 'Dates assume your whole surplus goes into one goal.'}</span>
+          </div>
+        )}
+
         {showForm && (
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-3 grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="md:col-span-2 text-xs font-semibold text-slate-500">{editingId ? 'Edit goal' : 'New goal'}</div>
@@ -201,6 +255,25 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
               <button onClick={resetForm} className="btn-ghost">Cancel</button>
               <button onClick={save} className="btn-primary">{editingId ? 'Update Goal' : 'Add Goal'}</button>
             </div>
+          </div>
+        )}
+
+        {planned && goals.length > 0 && (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="font-medium text-slate-700">Planned {formatINR(totalPlanned)} / {formatINR(pace)} monthly surplus</span>
+              <span className={planLeftover >= 0 ? 'text-emerald-700 font-semibold' : 'text-rose-600 font-semibold'}>
+                {planLeftover >= 0 ? `${formatINR(planLeftover)} left` : `over by ${formatINR(Math.abs(planLeftover))}`}
+              </span>
+            </div>
+            <div className="mt-2 h-2 rounded-full bg-slate-200 overflow-hidden">
+              <div className={`h-full rounded-full ${planLeftover < 0 ? 'bg-rose-500' : 'bg-brand-500'}`} style={{ width: `${pace > 0 ? Math.min(100, (totalPlanned / pace) * 100) : 0}%` }} />
+            </div>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <span className="text-[11px] text-slate-400">Surplus = {usingFixed ? 'fixed income − fixed bills' : '6-month average savings'}</span>
+              {pace > 0 && <button onClick={autoSplit} className="text-xs link">Auto-split by priority</button>}
+            </div>
+            {planLeftover < 0 && <p className="text-[11px] text-rose-600 mt-1">Your planned contributions exceed your monthly surplus — you can't sustain all of these.</p>}
           </div>
         )}
 
@@ -248,7 +321,15 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-2">
                     {g.deadline && <span>Deadline: {g.deadline}</span>}
                     {requiredMonthly !== null && !done && <span className="text-slate-700 font-medium">Need {formatINR(requiredMonthly)}/mo{monthsLeft > 0 ? ` · ${monthsLeft} mo left` : ''}</span>}
-                    {eta && <span className="text-brand-700">≈ {eta} if focused*</span>}
+                    {eta && <span className="text-brand-700">≈ {eta}{planned ? '' : ' if focused'}*</span>}
+                    {planned && !done && (
+                      <label className="flex items-center gap-1">
+                        <span>Plan ₹/mo:</span>
+                        <input type="number" value={(g.monthlyPlan !== undefined && g.monthlyPlan !== null) ? g.monthlyPlan : ''}
+                          onChange={e => updatePlan(g.id, e.target.value)}
+                          placeholder={reqMonthly(g) ? String(Math.round(reqMonthly(g))) : '0'} className="input w-20 px-2 py-1" />
+                      </label>
+                    )}
                     <div className="flex items-center gap-3 ml-auto">
                       {!done && <button onClick={() => openMove(g, 'add')} className="text-brand-700 font-semibold hover:text-brand-800">+ Contribute</button>}
                       {Number(g.saved || 0) > 0 && <button onClick={() => openMove(g, 'withdraw')} className="text-slate-500 font-medium hover:text-slate-700">Withdraw</button>}
@@ -260,7 +341,11 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
           })}
         </div>
         {goals.length > 0 && pace > 0 && (
-          <p className="text-[11px] text-slate-400 mt-3">*Each goal's date assumes your whole monthly surplus ({usingFixed ? 'fixed income − fixed bills' : '6-month average'}) goes into that one goal. The “all goals” date above instead funds every goal in deadline-priority order.</p>
+          <p className="text-[11px] text-slate-400 mt-3">
+            {planned
+              ? '*Each goal’s date uses your planned ₹/mo for it; the “all goals” date is the last goal to finish. Planned amounts draw from your monthly surplus (fixed income − fixed bills, or 6-month average).'
+              : `*Each goal’s date assumes your whole monthly surplus (${usingFixed ? 'fixed income − fixed bills' : '6-month average'}) goes into that one goal. The “all goals” date instead funds every goal in deadline-priority order.`}
+          </p>
         )}
       </div>
 
