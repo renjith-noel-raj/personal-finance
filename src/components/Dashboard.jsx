@@ -146,6 +146,15 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
     [trendData]
   );
 
+  // All-time savings pool = (all available income) − (all expenses), across every month.
+  const lifetimeSavings = useMemo(() => {
+    const inc = incomes.filter(i => isIncCatActive(i.catId));
+    const signed = (i) => (i.isLoss ? -Number(i.amount) : Number(i.amount));
+    const available = inc.reduce((s, i) => s + signed(i), 0) - inc.filter(i => i.reinvest).reduce((s, i) => s + signed(i), 0);
+    const exp = expenses.filter(e => isExpCatActive(e.catId)).reduce((s, e) => s + Number(e.amount), 0);
+    return available - exp;
+  }, [incomes, expenses, incCatActive, expCatActive]);
+
   const budgetProgress = useMemo(() => {
     return Object.entries(budgets).filter(([_, v]) => v > 0).map(([catId, limit]) => {
       const spent = activeExpenses.filter(e => e.catId === catId).reduce((s,e)=>s+Number(e.amount),0);
@@ -256,7 +265,7 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
             selectedMonth={selectedMonth}
           />
         )}
-        {activeTab === 'goals' && <GoalsTab goals={goals} setGoals={setGoals} netSavings={netSavings} avgMonthlySavings={avgMonthlySavings} />}
+        {activeTab === 'goals' && <GoalsTab goals={goals} setGoals={setGoals} netSavings={netSavings} avgMonthlySavings={avgMonthlySavings} lifetimeSavings={lifetimeSavings} />}
         {activeTab === 'data' && (
           <DataTab
             expenses={expenses} setExpenses={setExpenses}

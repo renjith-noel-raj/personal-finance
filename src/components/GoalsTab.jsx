@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, PiggyBank, Target, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, Edit2, PiggyBank, Target, TrendingUp, Wallet } from 'lucide-react';
 import { formatINR } from './shared';
 import Modal from './Modal.jsx';
 
@@ -31,7 +31,7 @@ const monthLabelFromNow = (months) => {
   return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 };
 
-export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySavings = 0 }) {
+export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySavings = 0, lifetimeSavings = 0 }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState('');
@@ -39,59 +39,17 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
   const [saved, setSaved] = useState('');
   const [deadline, setDeadline] = useState('');
   const [contributeGoal, setContributeGoal] = useState(null);
+  const [contributeMode, setContributeMode] = useState('add'); // 'add' | 'withdraw'
   const [contributeAmount, setContributeAmount] = useState('');
   const [allocGoalId, setAllocGoalId] = useState('');
   const [allocAmount, setAllocAmount] = useState('');
 
-  const resetForm = () => { setName(''); setTarget(''); setSaved(''); setDeadline(''); setEditingId(null); setShowForm(false); };
-
-  const startAdd = () => {
-    if (showForm && !editingId) { setShowForm(false); return; }
-    setEditingId(null); setName(''); setTarget(''); setSaved(''); setDeadline(''); setShowForm(true);
-  };
-
-  const startEdit = (g) => {
-    setEditingId(g.id);
-    setName(g.name); setTarget(String(g.target ?? '')); setSaved(String(g.saved ?? '')); setDeadline(g.deadline || '');
-    setShowForm(true);
-  };
-
-  const save = () => {
-    if (!name.trim() || !target) return;
-    if (editingId) {
-      setGoals(goals.map(g => g.id === editingId ? { ...g, name, target: Number(target), saved: Number(saved) || 0, deadline } : g));
-    } else {
-      setGoals([...goals, { id: Date.now().toString(), name, target: Number(target), saved: Number(saved) || 0, deadline }]);
-    }
-    resetForm();
-  };
-
-  const updateSaved = (id, amount) => setGoals(goals.map(g => g.id === id ? { ...g, saved: Number(amount) } : g));
-  const remove = (id) => setGoals(goals.filter(g => g.id !== id));
-
-  const contribute = (id, amount) => {
-    const amt = Number(amount);
-    if (!amt || amt <= 0) return;
-    setGoals(goals.map(g => g.id === id ? { ...g, saved: Number(g.saved || 0) + amt } : g));
-  };
-  const openContribute = (g) => {
-    const remaining = Math.max(0, Number(g.target || 0) - Number(g.saved || 0));
-    const suggested = Math.max(0, Math.min(netSavings > 0 ? netSavings : 0, remaining));
-    setContributeGoal(g);
-    setContributeAmount(suggested ? String(Math.round(suggested)) : '');
-  };
-  const doAllocate = () => {
-    const id = allocGoalId || goals[0]?.id;
-    if (!id) return;
-    contribute(id, allocAmount);
-    setAllocAmount('');
-  };
-
-  // ---- aggregations ----
+  // ---- aggregations + savings pool ----
   const totalTarget = goals.reduce((s, g) => s + Number(g.target || 0), 0);
   const totalSaved = goals.reduce((s, g) => s + Number(g.saved || 0), 0);
   const totalRemaining = goals.reduce((s, g) => s + Math.max(0, Number(g.target || 0) - Number(g.saved || 0)), 0);
   const overallPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
+  const free = lifetimeSavings - totalSaved; // unallocated savings pool
 
   const datedGoals = goals.filter(g => g.deadline);
   const totalMonthlyNeed = datedGoals.reduce((s, g) => {
@@ -105,6 +63,55 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
     if (b.deadline) return 1;
     return 0;
   });
+
+  // ---- handlers ----
+  const resetForm = () => { setName(''); setTarget(''); setSaved(''); setDeadline(''); setEditingId(null); setShowForm(false); };
+
+  const startAdd = () => {
+    if (showForm && !editingId) { setShowForm(false); return; }
+    setEditingId(null); setName(''); setTarget(''); setSaved(''); setDeadline(''); setShowForm(true);
+  };
+  const startEdit = (g) => {
+    setEditingId(g.id);
+    setName(g.name); setTarget(String(g.target ?? '')); setSaved(String(g.saved ?? '')); setDeadline(g.deadline || '');
+    setShowForm(true);
+  };
+  const save = () => {
+    if (!name.trim() || !target) return;
+    if (editingId) {
+      setGoals(goals.map(g => g.id === editingId ? { ...g, name, target: Number(target), saved: Number(saved) || 0, deadline } : g));
+    } else {
+      setGoals([...goals, { id: Date.now().toString(), name, target: Number(target), saved: Number(saved) || 0, deadline }]);
+    }
+    resetForm();
+  };
+  const updateSaved = (id, amount) => setGoals(goals.map(g => g.id === id ? { ...g, saved: Number(amount) } : g));
+  const remove = (id) => setGoals(goals.filter(g => g.id !== id));
+
+  const move = (id, amount, mode) => {
+    const amt = Number(amount);
+    if (!amt || amt <= 0) return;
+    setGoals(goals.map(g => {
+      if (g.id !== id) return g;
+      const cur = Number(g.saved || 0);
+      return { ...g, saved: mode === 'withdraw' ? Math.max(0, cur - amt) : cur + amt };
+    }));
+  };
+  const openMove = (g, mode = 'add') => {
+    const remaining = Math.max(0, Number(g.target || 0) - Number(g.saved || 0));
+    const suggested = mode === 'withdraw'
+      ? Number(g.saved || 0)
+      : Math.max(0, Math.min(free > 0 ? free : 0, remaining));
+    setContributeMode(mode);
+    setContributeGoal(g);
+    setContributeAmount(suggested ? String(Math.round(suggested)) : '');
+  };
+  const doAllocate = () => {
+    const id = allocGoalId || goals[0]?.id;
+    if (!id) return;
+    move(id, allocAmount, 'add');
+    setAllocAmount('');
+  };
 
   // ---- feasibility ----
   let feasibility = null;
@@ -122,6 +129,9 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
   }
   const feasClass = { good: 'bg-emerald-50 text-emerald-800 border-emerald-200', warn: 'bg-amber-50 text-amber-800 border-amber-200', info: 'bg-slate-50 text-slate-600 border-slate-200' };
 
+  const modalRemaining = contributeGoal ? Math.max(0, Number(contributeGoal.target || 0) - Number(contributeGoal.saved || 0)) : 0;
+  const overAllocating = contributeMode === 'add' && Number(contributeAmount) > free;
+
   return (
     <div className="space-y-4">
       {/* Portfolio summary */}
@@ -133,7 +143,7 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
               <span className="text-[9px] text-slate-400 uppercase tracking-wide">overall</span>
             </ProgressRing>
             <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Saved</div><div className="text-base font-bold text-slate-900">{formatINR(totalSaved)}</div></div>
+              <div><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Allocated</div><div className="text-base font-bold text-slate-900">{formatINR(totalSaved)}</div></div>
               <div><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Target</div><div className="text-base font-bold text-slate-900">{formatINR(totalTarget)}</div></div>
               <div><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Remaining</div><div className="text-base font-bold text-slate-900">{formatINR(totalRemaining)}</div></div>
               <div><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Needed / mo</div><div className="text-base font-bold text-brand-700">{formatINR(totalMonthlyNeed)}</div></div>
@@ -179,7 +189,6 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
             const overdue = g.deadline && monthsLeft <= 0 && !done;
             const requiredMonthly = g.deadline ? remaining / Math.max(1, monthsLeft) : null;
 
-            // achievability vs overall savings pace
             let badge = null;
             if (done) badge = { label: 'Complete', cls: 'bg-emerald-100 text-emerald-700' };
             else if (overdue) badge = { label: 'Overdue', cls: 'bg-rose-100 text-rose-700' };
@@ -216,11 +225,8 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
                     {requiredMonthly !== null && !done && <span className="text-slate-700 font-medium">Need {formatINR(requiredMonthly)}/mo{monthsLeft > 0 ? ` · ${monthsLeft} mo left` : ''}</span>}
                     {soloFinish && <span className="text-brand-700">≈ {soloFinish} at your pace*</span>}
                     <div className="flex items-center gap-3 ml-auto">
-                      {!done && <button onClick={() => openContribute(g)} className="text-brand-700 font-semibold hover:text-brand-800">+ Contribute</button>}
-                      <label className="flex items-center gap-1">
-                        <span>Saved:</span>
-                        <input type="number" value={g.saved} onChange={e => updateSaved(g.id, e.target.value)} className="input w-24 px-2 py-1" />
-                      </label>
+                      {!done && <button onClick={() => openMove(g, 'add')} className="text-brand-700 font-semibold hover:text-brand-800">+ Contribute</button>}
+                      {Number(g.saved || 0) > 0 && <button onClick={() => openMove(g, 'withdraw')} className="text-slate-500 font-medium hover:text-slate-700">Withdraw</button>}
                     </div>
                   </div>
                 </div>
@@ -233,16 +239,21 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
         )}
       </div>
 
-      {/* Savings context + allocate */}
+      {/* Savings pool + allocate */}
       <div className="bg-brand-50 border border-brand-200 rounded-2xl p-4 space-y-3">
         <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
           <div>
-            <h3 className="font-semibold text-brand-900 mb-1 flex items-center gap-2"><PiggyBank size={16} /> This Month's Savings</h3>
-            <div className={`text-2xl font-bold ${netSavings >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(netSavings)}</div>
+            <h3 className="font-semibold text-brand-900 mb-1 flex items-center gap-2"><Wallet size={16} /> Unallocated savings</h3>
+            <div className={`text-2xl font-bold ${free >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(free)}</div>
+            <div className="text-[11px] text-brand-700/70">{formatINR(lifetimeSavings)} saved − {formatINR(totalSaved)} allocated</div>
           </div>
           <div>
-            <h3 className="font-semibold text-brand-900 mb-1 flex items-center gap-2"><TrendingUp size={16} /> Avg / month (6 mo)</h3>
-            <div className={`text-2xl font-bold ${avgMonthlySavings >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(avgMonthlySavings)}</div>
+            <h3 className="font-semibold text-brand-900/80 mb-1 flex items-center gap-2"><PiggyBank size={15} /> This month</h3>
+            <div className={`text-lg font-bold ${netSavings >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(netSavings)}</div>
+          </div>
+          <div>
+            <h3 className="font-semibold text-brand-900/80 mb-1 flex items-center gap-2"><TrendingUp size={15} /> Avg / month</h3>
+            <div className={`text-lg font-bold ${avgMonthlySavings >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(avgMonthlySavings)}</div>
           </div>
         </div>
         {goals.length > 0 && (
@@ -252,8 +263,8 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
               {goals.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
             </select>
             <input type="number" value={allocAmount} onChange={e => setAllocAmount(e.target.value)}
-              placeholder={netSavings > 0 ? `₹ ${Math.round(netSavings)}` : '₹ amount'} className="input w-28 px-2 py-2 bg-white" />
-            {netSavings > 0 && <button onClick={() => setAllocAmount(String(Math.round(netSavings)))} className="text-xs link">use ₹{Math.round(netSavings)}</button>}
+              placeholder={free > 0 ? `₹ ${Math.round(free)}` : '₹ amount'} className="input w-28 px-2 py-2 bg-white" />
+            {free > 0 && <button onClick={() => setAllocAmount(String(Math.round(free)))} className="text-xs link">use ₹{Math.round(free)}</button>}
             <button onClick={doAllocate} className="btn-primary">Add</button>
           </div>
         )}
@@ -261,21 +272,26 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
 
       <Modal
         open={!!contributeGoal}
-        title={contributeGoal ? `Contribute to ${contributeGoal.name}` : ''}
-        confirmLabel="Add to goal"
-        onConfirm={() => { contribute(contributeGoal.id, contributeAmount); setContributeGoal(null); }}
+        title={contributeGoal ? `${contributeMode === 'withdraw' ? 'Withdraw from' : 'Contribute to'} ${contributeGoal.name}` : ''}
+        confirmLabel={contributeMode === 'withdraw' ? 'Withdraw' : 'Add to goal'}
+        danger={contributeMode === 'withdraw'}
+        onConfirm={() => { move(contributeGoal.id, contributeAmount, contributeMode); setContributeGoal(null); }}
         onCancel={() => setContributeGoal(null)}
       >
-        {contributeGoal && (() => {
-          const remaining = Math.max(0, Number(contributeGoal.target || 0) - Number(contributeGoal.saved || 0));
-          return (
-            <div className="mt-3">
-              <div className="text-xs text-slate-500 mb-2">Remaining: {formatINR(remaining)} · This month's savings: {formatINR(netSavings)}</div>
-              <label className="text-xs font-medium text-slate-600 block mb-1">Amount to add (₹)</label>
-              <input type="number" value={contributeAmount} onChange={e => setContributeAmount(e.target.value)} className="input" />
+        {contributeGoal && (
+          <div className="mt-3">
+            <div className="text-xs text-slate-500 mb-2">
+              {contributeMode === 'withdraw'
+                ? `Allocated to this goal: ${formatINR(contributeGoal.saved)} · returns to your unallocated savings`
+                : `Available to allocate: ${formatINR(free)} · ${formatINR(modalRemaining)} left on this goal`}
             </div>
-          );
-        })()}
+            <label className="text-xs font-medium text-slate-600 block mb-1">Amount (₹)</label>
+            <input type="number" value={contributeAmount} onChange={e => setContributeAmount(e.target.value)} className="input" />
+            {overAllocating && (
+              <p className="text-[11px] text-amber-700 mt-1">This is more than your unallocated savings — your pool will go negative.</p>
+            )}
+          </div>
+        )}
       </Modal>
     </div>
   );
