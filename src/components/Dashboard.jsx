@@ -141,6 +141,11 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
     return months;
   }, [expenses, incomes, expCatActive, incCatActive, selectedMonth]);
 
+  const avgMonthlySavings = useMemo(
+    () => trendData.length ? trendData.reduce((s, m) => s + m.Savings, 0) / trendData.length : 0,
+    [trendData]
+  );
+
   const budgetProgress = useMemo(() => {
     return Object.entries(budgets).filter(([_, v]) => v > 0).map(([catId, limit]) => {
       const spent = activeExpenses.filter(e => e.catId === catId).reduce((s,e)=>s+Number(e.amount),0);
@@ -251,7 +256,7 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
             selectedMonth={selectedMonth}
           />
         )}
-        {activeTab === 'goals' && <GoalsTab goals={goals} setGoals={setGoals} netSavings={netSavings} />}
+        {activeTab === 'goals' && <GoalsTab goals={goals} setGoals={setGoals} netSavings={netSavings} avgMonthlySavings={avgMonthlySavings} />}
         {activeTab === 'data' && (
           <DataTab
             expenses={expenses} setExpenses={setExpenses}

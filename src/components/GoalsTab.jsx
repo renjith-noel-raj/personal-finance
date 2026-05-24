@@ -1,8 +1,36 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, PiggyBank, Target } from 'lucide-react';
+import { Plus, Trash2, PiggyBank, Target, TrendingUp } from 'lucide-react';
 import { formatINR } from './shared';
 
-export default function GoalsTab({ goals, setGoals, netSavings }) {
+function ProgressRing({ value, size = 64, stroke = 7, color = '#0891b2', track = '#e2e8f0', children }) {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, value || 0));
+  const offset = circ - (pct / 100) * circ;
+  return (
+    <div className="relative inline-flex items-center justify-center flex-shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={track} strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset .5s ease' }} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">{children}</div>
+    </div>
+  );
+}
+
+const monthsBetween = (deadline) => {
+  const d = new Date(deadline), now = new Date();
+  return (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth());
+};
+const monthLabelFromNow = (months) => {
+  const d = new Date();
+  d.setMonth(d.getMonth() + Math.ceil(months));
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+};
+
+export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySavings = 0 }) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
@@ -14,12 +42,68 @@ export default function GoalsTab({ goals, setGoals, netSavings }) {
     setGoals([...goals, { id: Date.now().toString(), name, target: Number(target), saved: Number(saved) || 0, deadline }]);
     setName(''); setTarget(''); setSaved(''); setDeadline(''); setShowForm(false);
   };
-
   const updateSaved = (id, amount) => setGoals(goals.map(g => g.id === id ? { ...g, saved: Number(amount) } : g));
   const remove = (id) => setGoals(goals.filter(g => g.id !== id));
 
+  // ---- aggregations ----
+  const totalTarget = goals.reduce((s, g) => s + Number(g.target || 0), 0);
+  const totalSaved = goals.reduce((s, g) => s + Number(g.saved || 0), 0);
+  const totalRemaining = goals.reduce((s, g) => s + Math.max(0, Number(g.target || 0) - Number(g.saved || 0)), 0);
+  const overallPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
+
+  const datedGoals = goals.filter(g => g.deadline);
+  const totalMonthlyNeed = datedGoals.reduce((s, g) => {
+    const monthsLeft = Math.max(1, monthsBetween(g.deadline));
+    return s + Math.max(0, (Number(g.target || 0) - Number(g.saved || 0)) / monthsLeft);
+  }, 0);
+
+  const sortedGoals = [...goals].sort((a, b) => {
+    if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
+    if (a.deadline) return -1;
+    if (b.deadline) return 1;
+    return 0;
+  });
+
+  // ---- feasibility ----
+  let feasibility = null;
+  if (goals.length > 0) {
+    if (datedGoals.length === 0) {
+      feasibility = { tone: 'info', text: 'Add deadlines to your goals to see whether your savings can keep up.' };
+    } else if (avgMonthlySavings <= 0) {
+      feasibility = { tone: 'info', text: `Your deadlines need about ${formatINR(totalMonthlyNeed)}/mo. We can't gauge your pace yet — no positive savings in recent months.` };
+    } else {
+      const diff = avgMonthlySavings - totalMonthlyNeed;
+      feasibility = diff >= 0
+        ? { tone: 'good', text: `You save ~${formatINR(avgMonthlySavings)}/mo; your deadlines need ${formatINR(totalMonthlyNeed)}/mo — ${formatINR(diff)}/mo to spare. 🎯` }
+        : { tone: 'warn', text: `Your deadlines need ${formatINR(totalMonthlyNeed)}/mo but you save ~${formatINR(avgMonthlySavings)}/mo — ${formatINR(Math.abs(diff))}/mo short. Consider extending a deadline or trimming spending.` };
+    }
+  }
+  const feasClass = { good: 'bg-emerald-50 text-emerald-800 border-emerald-200', warn: 'bg-amber-50 text-amber-800 border-amber-200', info: 'bg-slate-50 text-slate-600 border-slate-200' };
+
   return (
     <div className="space-y-4">
+      {/* Portfolio summary */}
+      {goals.length > 0 && (
+        <div className="card p-4">
+          <div className="flex items-center gap-4">
+            <ProgressRing value={overallPct} size={84} stroke={9} color={overallPct >= 100 ? '#16a34a' : '#0891b2'}>
+              <span className="text-lg font-bold text-slate-900">{overallPct.toFixed(0)}%</span>
+              <span className="text-[9px] text-slate-400 uppercase tracking-wide">overall</span>
+            </ProgressRing>
+            <div className="flex-1 min-w-0 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Saved</div><div className="text-base font-bold text-slate-900">{formatINR(totalSaved)}</div></div>
+              <div><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Target</div><div className="text-base font-bold text-slate-900">{formatINR(totalTarget)}</div></div>
+              <div><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Remaining</div><div className="text-base font-bold text-slate-900">{formatINR(totalRemaining)}</div></div>
+              <div><div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Needed / mo</div><div className="text-base font-bold text-brand-700">{formatINR(totalMonthlyNeed)}</div></div>
+            </div>
+          </div>
+          {feasibility && (
+            <div className={`mt-3 text-sm px-3 py-2 rounded-lg border ${feasClass[feasibility.tone]}`}>{feasibility.text}</div>
+          )}
+        </div>
+      )}
+
+      {/* Goals list + add */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="panel-title flex items-center gap-2"><Target size={16} className="text-brand-600" /> Savings Goals</h3>
@@ -43,44 +127,73 @@ export default function GoalsTab({ goals, setGoals, netSavings }) {
 
         <div className="space-y-3">
           {goals.length === 0 ? (
-            <div className="text-center text-sm text-slate-400 py-10">No goals yet.</div>
-          ) : goals.map(g => {
+            <div className="text-center text-sm text-slate-400 py-10">No goals yet. Add one to start tracking.</div>
+          ) : sortedGoals.map(g => {
+            const remaining = Math.max(0, Number(g.target || 0) - Number(g.saved || 0));
             const pct = g.target > 0 ? (g.saved / g.target) * 100 : 0;
-            let monthsLeft = null, monthlyNeed = null;
-            if (g.deadline) {
-              const d = new Date(g.deadline), now = new Date();
-              monthsLeft = Math.max(1, (d.getFullYear() - now.getFullYear()) * 12 + (d.getMonth() - now.getMonth()));
-              monthlyNeed = Math.max(0, (g.target - g.saved) / monthsLeft);
+            const done = pct >= 100;
+            const monthsLeft = g.deadline ? monthsBetween(g.deadline) : null;
+            const overdue = g.deadline && monthsLeft <= 0 && !done;
+            const requiredMonthly = g.deadline ? remaining / Math.max(1, monthsLeft) : null;
+
+            // achievability vs overall savings pace
+            let badge = null;
+            if (done) badge = { label: 'Complete', cls: 'bg-emerald-100 text-emerald-700' };
+            else if (overdue) badge = { label: 'Overdue', cls: 'bg-rose-100 text-rose-700' };
+            else if (g.deadline && avgMonthlySavings > 0) {
+              if (requiredMonthly <= avgMonthlySavings) badge = { label: 'Achievable', cls: 'bg-emerald-100 text-emerald-700' };
+              else if (requiredMonthly <= avgMonthlySavings * 1.5) badge = { label: 'Tight', cls: 'bg-amber-100 text-amber-700' };
+              else badge = { label: 'Ambitious', cls: 'bg-rose-100 text-rose-700' };
             }
+            const soloFinish = (!done && avgMonthlySavings > 0 && remaining > 0)
+              ? monthLabelFromNow(remaining / avgMonthlySavings) : null;
+
             return (
-              <div key={g.id} className="border border-slate-200 rounded-xl p-3">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="min-w-0">
-                    <div className="font-semibold text-slate-900 truncate">{g.name}</div>
-                    <div className="text-xs text-slate-500">{formatINR(g.saved)} of {formatINR(g.target)} ({pct.toFixed(0)}%)</div>
+              <div key={g.id} className="border border-slate-200 rounded-xl p-3 flex gap-3">
+                <ProgressRing value={pct} size={60} stroke={6} color={done ? '#16a34a' : '#0891b2'}>
+                  <span className="text-xs font-bold text-slate-900">{pct.toFixed(0)}%</span>
+                </ProgressRing>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-slate-900 truncate flex items-center gap-2">
+                        <span className="truncate">{g.name}</span>
+                        {badge && <span className={`chip ${badge.cls}`}>{badge.label}</span>}
+                      </div>
+                      <div className="text-xs text-slate-500">{formatINR(g.saved)} of {formatINR(g.target)} · {formatINR(remaining)} to go</div>
+                    </div>
+                    <button onClick={() => remove(g.id)} className="text-slate-400 hover:text-rose-600 p-1 flex-shrink-0"><Trash2 size={14} /></button>
                   </div>
-                  <button onClick={() => remove(g.id)} className="text-slate-400 hover:text-rose-600 p-1 flex-shrink-0"><Trash2 size={14} /></button>
-                </div>
-                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden mb-2">
-                  <div className={`h-full rounded-full ${pct >= 100 ? 'bg-emerald-500' : 'bg-brand-500'}`} style={{ width: `${Math.min(100, pct)}%` }} />
-                </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                  {g.deadline && <span>Deadline: {g.deadline}</span>}
-                  {monthlyNeed !== null && <span>Need {formatINR(monthlyNeed)}/mo for {monthsLeft} mo</span>}
-                  <div className="flex items-center gap-1 ml-auto">
-                    <span>Update saved:</span>
-                    <input type="number" value={g.saved} onChange={e => updateSaved(g.id, e.target.value)} className="input w-24 px-2 py-1" />
+
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-2">
+                    {g.deadline && <span>Deadline: {g.deadline}</span>}
+                    {requiredMonthly !== null && !done && <span className="text-slate-700 font-medium">Need {formatINR(requiredMonthly)}/mo{monthsLeft > 0 ? ` · ${monthsLeft} mo left` : ''}</span>}
+                    {soloFinish && <span className="text-brand-700">≈ {soloFinish} at your pace*</span>}
+                    <label className="flex items-center gap-1 ml-auto">
+                      <span>Update saved:</span>
+                      <input type="number" value={g.saved} onChange={e => updateSaved(g.id, e.target.value)} className="input w-24 px-2 py-1" />
+                    </label>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+        {goals.length > 0 && avgMonthlySavings > 0 && (
+          <p className="text-[11px] text-slate-400 mt-3">*Projected finish assumes your whole average monthly savings goes to that goal — the app tracks total saved, not per-goal contributions.</p>
+        )}
       </div>
 
-      <div className="bg-brand-50 border border-brand-200 rounded-2xl p-4">
-        <h3 className="font-semibold text-brand-900 mb-2 flex items-center gap-2"><PiggyBank size={16} /> This Month's Savings</h3>
-        <div className={`text-2xl font-bold ${netSavings >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(netSavings)}</div>
+      {/* Savings context */}
+      <div className="bg-brand-50 border border-brand-200 rounded-2xl p-4 flex flex-wrap items-center gap-x-8 gap-y-3">
+        <div>
+          <h3 className="font-semibold text-brand-900 mb-1 flex items-center gap-2"><PiggyBank size={16} /> This Month's Savings</h3>
+          <div className={`text-2xl font-bold ${netSavings >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(netSavings)}</div>
+        </div>
+        <div>
+          <h3 className="font-semibold text-brand-900 mb-1 flex items-center gap-2"><TrendingUp size={16} /> Avg / month (6 mo)</h3>
+          <div className={`text-2xl font-bold ${avgMonthlySavings >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(avgMonthlySavings)}</div>
+        </div>
       </div>
     </div>
   );
