@@ -17,6 +17,7 @@ export function useFinanceData() {
   const [incCatActive, setIncCatActive] = useState({});
   const [budgets, setBudgets] = useState({});
   const [goals, setGoals] = useState([]);
+  const [debts, setDebts] = useState([]);
 
   const storageRef = useRef(null);
 
@@ -38,7 +39,7 @@ export function useFinanceData() {
       try {
         // Read every slice up front. If ANY read throws, we bail without
         // enabling saves, so a failed/partial read can never clobber storage.
-        const [exp, inc, ec, ic, eca, ica, bud, gl] = await Promise.all([
+        const [exp, inc, ec, ic, eca, ica, bud, gl, dbt] = await Promise.all([
           s.get('expenses'),
           s.get('incomes'),
           s.get('expCats'),
@@ -47,6 +48,7 @@ export function useFinanceData() {
           s.get('incCatActive'),
           s.get('budgets'),
           s.get('goals'),
+          s.get('debts'),
         ]);
         if (cancelled) { console.log('[PF] LOAD cancelled (stale) uid=%s', uid); return; }
 
@@ -63,6 +65,7 @@ export function useFinanceData() {
         setIncCatActive(ica ?? {});
         setBudgets(bud ?? {});
         setGoals(gl ?? []);
+        setDebts(dbt ?? []);
         setLoaded(true); // only now are auto-saves allowed to run
         console.log('[PF] LOAD complete -> auto-save ENABLED uid=%s', uid);
       } catch (e) {
@@ -90,6 +93,7 @@ export function useFinanceData() {
   useEffect(() => { if (loaded) save('incCatActive', incCatActive); }, [incCatActive, loaded]);
   useEffect(() => { if (loaded) save('budgets', budgets); }, [budgets, loaded]);
   useEffect(() => { if (loaded) save('goals', goals); }, [goals, loaded]);
+  useEffect(() => { if (loaded) save('debts', debts); }, [debts, loaded]);
 
   return {
     loaded,
@@ -103,6 +107,7 @@ export function useFinanceData() {
     incCatActive, setIncCatActive,
     budgets, setBudgets,
     goals, setGoals,
+    debts, setDebts,
   };
 }
 

@@ -8,6 +8,7 @@ import Overview from './Overview.jsx';
 import ExpensesTab from './ExpensesTab.jsx';
 import IncomeTab from './IncomeTab.jsx';
 import GoalsTab from './GoalsTab.jsx';
+import DebtsTab from './DebtsTab.jsx';
 import DataTab from './DataTab.jsx';
 import { DashboardSkeleton } from './Skeleton.jsx';
 import HelpPage from './HelpPage.jsx';
@@ -48,7 +49,7 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
     expenses, setExpenses, incomes, setIncomes,
     expCats, setExpCats, incCats, setIncCats,
     expCatActive, setExpCatActive, incCatActive, setIncCatActive,
-    budgets, setBudgets, goals, setGoals,
+    budgets, setBudgets, goals, setGoals, debts, setDebts,
   } = data;
 
   const [showHelp, setShowHelp] = useState(false);
@@ -175,6 +176,13 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
   }, [activeIncomes]);
   const predictableSurplus = fixedIncome - recurringTotal;
 
+  // Surplus available to clear debt = fixed income − fixed bills that are NOT debt payments.
+  const recurringNonDebt = useMemo(
+    () => activeExpenses.filter(e => e.recurring && !e.debtId).reduce((s, e) => s + Number(e.amount), 0),
+    [activeExpenses]
+  );
+  const surplusForDebt = fixedIncome > 0 ? fixedIncome - recurringNonDebt : avgMonthlySavings;
+
   const netBySource = useMemo(() => {
     const m = {};
     activeIncomes.forEach(i => {
@@ -275,6 +283,14 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
           />
         )}
         {activeTab === 'goals' && <GoalsTab goals={goals} setGoals={setGoals} netSavings={netSavings} avgMonthlySavings={avgMonthlySavings} lifetimeSavings={lifetimeSavings} predictableSurplus={predictableSurplus} fixedIncome={fixedIncome} fixedExpenses={recurringTotal} />}
+        {activeTab === 'debts' && (
+          <DebtsTab
+            debts={debts} setDebts={setDebts}
+            pace={surplusForDebt} avgMonthlySavings={avgMonthlySavings} netSavings={netSavings}
+            fixedIncome={fixedIncome} fixedExpenses={recurringNonDebt}
+            expenses={expenses} setExpenses={setExpenses} expCats={expCats}
+          />
+        )}
         {activeTab === 'data' && (
           <DataTab
             expenses={expenses} setExpenses={setExpenses}
@@ -283,6 +299,7 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
             incCats={incCats} setIncCats={setIncCats}
             budgets={budgets} setBudgets={setBudgets}
             goals={goals} setGoals={setGoals}
+            debts={debts} setDebts={setDebts}
             expCatActive={expCatActive} setExpCatActive={setExpCatActive}
             incCatActive={incCatActive} setIncCatActive={setIncCatActive}
           />

@@ -55,7 +55,7 @@ function downloadFile(filename, content, mime) {
   URL.revokeObjectURL(url);
 }
 
-export default function DataTab({ expenses, setExpenses, incomes, setIncomes, expCats, setExpCats, incCats, setIncCats, budgets, setBudgets, goals, setGoals, expCatActive, setExpCatActive, incCatActive, setIncCatActive }) {
+export default function DataTab({ expenses, setExpenses, incomes, setIncomes, expCats, setExpCats, incCats, setIncCats, budgets, setBudgets, goals, setGoals, debts, setDebts, expCatActive, setExpCatActive, incCatActive, setIncCatActive }) {
   const { storageMode, user } = useApp();
   const [status, setStatus] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -92,7 +92,7 @@ export default function DataTab({ expenses, setExpenses, incomes, setIncomes, ex
   };
 
   const exportJson = () => {
-    const payload = { version: 1, exportedAt: new Date().toISOString(), expenses, incomes, expCats, incCats, budgets, goals, expCatActive, incCatActive };
+    const payload = { version: 1, exportedAt: new Date().toISOString(), expenses, incomes, expCats, incCats, budgets, goals, debts, expCatActive, incCatActive };
     downloadFile(`finance-backup-${todayStr()}.json`, JSON.stringify(payload, null, 2), 'application/json');
     showStatus('Full backup downloaded.');
   };
@@ -111,6 +111,7 @@ export default function DataTab({ expenses, setExpenses, incomes, setIncomes, ex
         if (data.incCats) setIncCats(data.incCats);
         if (data.budgets) setBudgets(data.budgets);
         if (data.goals) setGoals(data.goals);
+        if (data.debts) setDebts(data.debts);
         if (data.expCatActive) setExpCatActive(data.expCatActive);
         if (data.incCatActive) setIncCatActive(data.incCatActive);
         showStatus('Backup restored successfully.');
@@ -179,13 +180,13 @@ export default function DataTab({ expenses, setExpenses, incomes, setIncomes, ex
   };
 
   const resetAll = () => {
-    setExpenses([]); setIncomes([]); setBudgets({}); setGoals([]);
+    setExpenses([]); setIncomes([]); setBudgets({}); setGoals([]); setDebts([]);
     setExpCatActive({}); setIncCatActive({});
     setConfirmReset(false);
     showStatus('All data cleared.');
   };
 
-  const totalSize = JSON.stringify({ expenses, incomes, expCats, incCats, budgets, goals }).length;
+  const totalSize = JSON.stringify({ expenses, incomes, expCats, incCats, budgets, goals, debts }).length;
 
   return (
     <div className="space-y-4">
@@ -206,6 +207,7 @@ export default function DataTab({ expenses, setExpenses, incomes, setIncomes, ex
             <span><strong>{expenses.length}</strong> expense entries</span>
             <span><strong>{incomes.length}</strong> income entries</span>
             <span><strong>{goals.length}</strong> goals</span>
+            <span><strong>{debts.length}</strong> debts</span>
             <span><strong>{(totalSize / 1024).toFixed(1)} KB</strong> total</span>
           </div>
         </div>
@@ -255,7 +257,7 @@ export default function DataTab({ expenses, setExpenses, incomes, setIncomes, ex
 
       <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4">
         <h3 className="font-semibold text-rose-900 mb-2 flex items-center gap-2"><Trash2 size={16} /> Danger Zone</h3>
-        <p className="text-sm text-rose-700 mb-3">Clear all entries, budgets, and goals. Categories are kept. Cannot be undone.</p>
+        <p className="text-sm text-rose-700 mb-3">Clear all entries, budgets, goals, and debts. Categories are kept. Cannot be undone.</p>
         {!confirmReset ? (
           <button onClick={() => setConfirmReset(true)} className="px-3 py-2 bg-white border border-rose-300 text-rose-700 rounded-xl text-sm hover:bg-rose-100 transition">Clear all data...</button>
         ) : (

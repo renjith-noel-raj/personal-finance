@@ -2,7 +2,7 @@ import { localGet, localSet, localDelete } from './indexeddb';
 import { getDb } from './firebase';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 
-export const KEYS = ['expenses', 'incomes', 'expCats', 'incCats', 'expCatActive', 'incCatActive', 'budgets', 'goals'];
+export const KEYS = ['expenses', 'incomes', 'expCats', 'incCats', 'expCatActive', 'incCatActive', 'budgets', 'goals', 'debts'];
 
 function userDocRef(uid, key) {
   return doc(getDb(), 'users', uid, 'data', key);

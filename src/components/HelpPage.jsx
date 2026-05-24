@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   X, BookOpen, Rocket, Compass, LayoutDashboard, CreditCard, TrendingUp,
-  Target, Database, Calculator, Smartphone, HelpCircle,
+  Target, Landmark, Database, Calculator, Smartphone, HelpCircle,
 } from 'lucide-react';
 
 function Section({ icon: Icon, title, children }) {
@@ -48,7 +48,7 @@ export default function HelpPage({ onClose }) {
         <Section icon={Compass} title="2. Getting around">
           <UL>
             <li><Term>Month selector</Term> (header): use <Term>‹ ›</Term> or the dropdown to change month, and <Term>Today</Term> to jump back. Most screens show data for the selected month.</li>
-            <li><Term>Tabs</Term>: Overview · Expenses · Income · Goals · Data. On phones these become a fixed bottom navigation bar.</li>
+            <li><Term>Tabs</Term>: Overview · Expenses · Income · Goals · Debts · Data. On phones these become a fixed bottom navigation bar.</li>
             <li><Term>Switch / sign out</Term>: the icon at the top-right returns you to storage selection (your data stays saved).</li>
             <li><Term>Help</Term>: reopen this guide anytime via the <Term>?</Term> button in the header.</li>
           </UL>
@@ -108,16 +108,32 @@ export default function HelpPage({ onClose }) {
           </UL>
         </Section>
 
-        <Section icon={Database} title="7. Data — backup, export, import">
+        <Section icon={Landmark} title="7. Debts">
+          <UL>
+            <li><Term>Portfolio summary</Term> — an overall <Term>% cleared</Term> ring plus Paid / Total owed / Remaining / Needed-per-month, a computed <Term>“debt-free by” date</Term>, and a <Term>feasibility banner</Term> (with a warning if your surplus can’t even cover your mandatory EMIs).</li>
+            <li><Term>Add / edit a debt</Term> — name, total owed, already paid, optional <Term>interest rate (APR %)</Term>, optional <Term>mandatory EMI</Term> (₹/mo), a start date, and an optional target clear-by date. Leave APR blank for an interest-free debt (it then behaves like a savings goal in reverse).</li>
+            <li><Term>Each debt</Term> shows a progress ring (% paid), an APR chip, a status badge (Cleared / On track / Tight / Ambitious / Overdue / <Term>Won’t clear</Term> when a payment can’t cover the interest), the outstanding balance, and a projected end date.</li>
+            <li><Term>Focused vs Planned</Term> (toggle):
+              <UL>
+                <li><Term>Focused</Term> pays every debt’s EMI, then throws your entire spare surplus at one debt — choose the order with the <Term>Attack</Term> selector: <Term>Avalanche</Term> (highest APR, saves the most interest), <Term>Snowball</Term> (smallest balance first), or <Term>Earliest deadline</Term>. The summary shows the interest you save.</li>
+                <li><Term>Planned</Term> — set a monthly ₹ amount per debt from your surplus, with a meter showing how much you’ve committed (and a warning if a plan is below that debt’s EMI), plus an <Term>auto-split</Term> helper.</li>
+              </UL>
+            </li>
+            <li><Term>Make payment</Term> — reduces the balance and (by default) logs the payment once as an EMI expense, so it counts in your spending exactly once. With an APR set it auto-splits into <Term>interest</Term> and <Term>principal</Term>. Interest is charged only on your <Term>first payment each month</Term>; a second payment that month goes entirely to principal.</li>
+            <li><Term>Surplus for debt</Term> = fixed income − fixed bills (excluding the debt payments themselves), or your 6-month average savings if you haven’t tagged recurring income — the money available to clear debt each month.</li>
+          </UL>
+        </Section>
+
+        <Section icon={Database} title="8. Data — backup, export, import">
           <UL>
             <li><Term>Export</Term> — Expenses (CSV), Income (CSV), or a <Term>Full Backup (JSON)</Term> of everything.</li>
             <li><Term>Import</Term> — restore a full JSON backup (replaces current data), or add expenses/income from a CSV (missing categories are created automatically).</li>
-            <li><Term>Danger zone</Term> — Clear all data wipes entries, budgets, and goals (categories are kept). Two-step confirm, cannot be undone.</li>
+            <li><Term>Danger zone</Term> — Clear all data wipes entries, budgets, goals, and debts (categories are kept). Two-step confirm, cannot be undone.</li>
           </UL>
           <p className="text-slate-500">Tip: the JSON backup is the way to move your data between Local and Firebase. Export regularly.</p>
         </Section>
 
-        <Section icon={Calculator} title="8. How the numbers work">
+        <Section icon={Calculator} title="9. How the numbers work">
           <UL>
             <li><Term>Available income</Term> = total income − reinvested income. Most percentages are against available income, not gross.</li>
             <li><Term>Net savings (month)</Term> = available income − expenses, for the selected month.</li>
@@ -125,10 +141,12 @@ export default function HelpPage({ onClose }) {
             <li><Term>Inactive categories</Term> (unchecked) are excluded from every total and chart.</li>
             <li><Term>Savings pool</Term> = all-time savings − total allocated to goals.</li>
             <li><Term>Predictable surplus</Term> = fixed income − fixed expenses, preferred over the 6-month average for goal insights when available.</li>
+            <li><Term>Surplus for debt</Term> = fixed income − fixed bills, but excluding the debt payments themselves — so the money that funds a debt isn’t also counted against it.</li>
+            <li><Term>Debt interest</Term> is charged once per month (on the first payment); that payment’s principal portion = payment − the month’s interest, and any further payment that month is all principal. <Term>Avalanche</Term> order (highest APR first) minimizes total interest.</li>
           </UL>
         </Section>
 
-        <Section icon={Smartphone} title="9. Install as an app">
+        <Section icon={Smartphone} title="10. Install as an app">
           <UL>
             <li><Term>Desktop (Chrome/Edge)</Term>: click the install icon in the address bar.</li>
             <li><Term>iPhone (Safari)</Term>: Share → Add to Home Screen.</li>
@@ -137,7 +155,7 @@ export default function HelpPage({ onClose }) {
           <p>It then works offline and opens full-screen. If a recent change doesn't show, hard-refresh (the app caches for offline use).</p>
         </Section>
 
-        <Section icon={HelpCircle} title="10. Troubleshooting">
+        <Section icon={HelpCircle} title="11. Troubleshooting">
           <UL>
             <li><Term>Sign-in fails with “unauthorized-domain”</Term> — add the app's domain to your Firebase project under Authentication → Settings → Authorized domains.</li>
             <li><Term>Connected to Firebase but nothing saves</Term> — you likely skipped publishing the Firestore security rules (production mode denies all by default).</li>

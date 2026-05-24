@@ -1,11 +1,12 @@
 import React from 'react';
-import { LayoutDashboard, CreditCard, TrendingUp, Target, Database } from 'lucide-react';
+import { LayoutDashboard, CreditCard, TrendingUp, Target, Database, Landmark } from 'lucide-react';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'expenses', label: 'Expenses', icon: CreditCard },
   { id: 'income', label: 'Income', icon: TrendingUp },
   { id: 'goals', label: 'Goals', icon: Target },
+  { id: 'debts', label: 'Debts', icon: Landmark },
   { id: 'data', label: 'Data', icon: Database },
 ];
 

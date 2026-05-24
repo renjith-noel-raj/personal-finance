@@ -1,6 +1,6 @@
 # Personal Finance Dashboard
 
-A **privacy-first** personal finance tracker — track expenses, income, savings, and goals, with your data living **on your own device or in your own cloud**. There is no app-owned server: you pick where your data is stored at runtime.
+A **privacy-first** personal finance tracker — track expenses, income, savings, goals, and debt payoff, with your data living **on your own device or in your own cloud**. There is no app-owned server: you pick where your data is stored at runtime.
 
 🔗 **Live app:** https://renjith-noel-raj.github.io/personal-finance/
 
@@ -11,7 +11,7 @@ A **privacy-first** personal finance tracker — track expenses, income, savings
 ## Why this app
 
 - **Your data, your control.** Store everything **locally** in your browser (IndexedDB), or sync to **your own Firebase project** — the app never sends your finances to a shared/third-party server.
-- **More than a ledger.** Automatic insights, the 50/30/20 rule, necessity tagging (Need/Want/Impulse), budgets, 6‑month trends, and a goals engine with a real savings "pool."
+- **More than a ledger.** Automatic insights, the 50/30/20 rule, necessity tagging (Need/Want/Impulse), budgets, 6‑month trends, a goals engine with a real savings "pool," and an interest‑aware debt‑clearance planner.
 - **Works offline & installs like an app** (PWA).
 
 ---
@@ -24,6 +24,7 @@ A **privacy-first** personal finance tracker — track expenses, income, savings
 | **Expenses** | Categories (toggle/active, color, add/remove), **budgets** with progress, and entries tagged with **necessity** (Need/Want/Impulse) and **recurring** (fixed cost). Add / edit / delete. |
 | **Income** | Income sources, **profit vs loss** entries, **reinvest** flag, and **recurring** (fixed/predictable income, e.g. salary). Add / edit / delete. |
 | **Goals** | Create/edit goals, **progress rings**, **portfolio summary**, **feasibility** vs your predictable monthly surplus, achievability badges, per-goal & overall **completion dates** with a **Focused / Planned** toggle (planned monthly amounts per goal + surplus meter), and a **savings pool** you can **contribute**/**withdraw**/**allocate** from. |
+| **Debts** | Track loans / credit cards with optional **APR** and **EMI**, **interest‑aware** payoff: progress rings, portfolio summary, a computed **debt‑free date**, **Focused** (avalanche / snowball / earliest‑deadline) vs **Planned** modes from your surplus, and **Make payment** — logs one expense and auto‑splits interest vs principal (interest charged once per month; extra payments go fully to principal). |
 | **Data** | **CSV export** (expenses/income), full **JSON backup & restore**, **CSV import**, storage info, and a clear‑all "danger zone." |
 | **App** | Month navigation, light professional theme, mobile **bottom‑nav**, installable **PWA**, offline support. |
 
