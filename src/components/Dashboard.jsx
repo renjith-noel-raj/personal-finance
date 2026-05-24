@@ -166,6 +166,13 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
 
   const recurringTotal = useMemo(() => activeExpenses.filter(e => e.recurring).reduce((s,e)=>s+Number(e.amount),0), [activeExpenses]);
 
+  // Fixed/predictable monthly income (recurring, available) and the resulting reliable surplus.
+  const fixedIncome = useMemo(() => {
+    const rec = activeIncomes.filter(i => i.recurring && !i.isLoss);
+    return rec.reduce((s, i) => s + Number(i.amount), 0) - rec.filter(i => i.reinvest).reduce((s, i) => s + Number(i.amount), 0);
+  }, [activeIncomes]);
+  const predictableSurplus = fixedIncome - recurringTotal;
+
   const netBySource = useMemo(() => {
     const m = {};
     activeIncomes.forEach(i => {
@@ -265,7 +272,7 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
             selectedMonth={selectedMonth}
           />
         )}
-        {activeTab === 'goals' && <GoalsTab goals={goals} setGoals={setGoals} netSavings={netSavings} avgMonthlySavings={avgMonthlySavings} lifetimeSavings={lifetimeSavings} />}
+        {activeTab === 'goals' && <GoalsTab goals={goals} setGoals={setGoals} netSavings={netSavings} avgMonthlySavings={avgMonthlySavings} lifetimeSavings={lifetimeSavings} predictableSurplus={predictableSurplus} fixedIncome={fixedIncome} fixedExpenses={recurringTotal} />}
         {activeTab === 'data' && (
           <DataTab
             expenses={expenses} setExpenses={setExpenses}

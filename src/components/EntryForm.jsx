@@ -24,7 +24,7 @@ export default function EntryForm({ cats, initial, onSubmit, onCancel, type, def
     if (!amount || Number(amount) <= 0) return;
     const data = { amount: Number(amount), catId, description, date };
     if (type === 'expense') Object.assign(data, { necessity, recurring });
-    else Object.assign(data, { reinvest, isLoss });
+    else Object.assign(data, { reinvest, isLoss, recurring: isLoss ? false : recurring });
     onSubmit(data);
   };
 
@@ -76,11 +76,17 @@ export default function EntryForm({ cats, initial, onSubmit, onCancel, type, def
           </>
         )}
         {type === 'income' && (
-          <div className="md:col-span-2 flex items-center">
+          <div className="md:col-span-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={reinvest} onChange={e => setReinvest(e.target.checked)} className="rounded accent-brand-600" />
               <span className="text-sm text-slate-700">{isLoss ? 'Loss came from reinvested capital' : 'Reinvest this income'}</span>
             </label>
+            {!isLoss && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={recurring} onChange={e => setRecurring(e.target.checked)} className="rounded accent-brand-600" />
+                <span className="text-sm text-slate-700">Recurring monthly income (e.g. salary)</span>
+              </label>
+            )}
           </div>
         )}
       </div>

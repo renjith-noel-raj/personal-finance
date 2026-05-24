@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, PiggyBank, Target, TrendingUp, Wallet } from 'lucide-react';
+import { Plus, Trash2, Edit2, PiggyBank, Target, TrendingUp, Wallet, Repeat } from 'lucide-react';
 import { formatINR } from './shared';
 import Modal from './Modal.jsx';
 
@@ -31,7 +31,7 @@ const monthLabelFromNow = (months) => {
   return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 };
 
-export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySavings = 0, lifetimeSavings = 0 }) {
+export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySavings = 0, lifetimeSavings = 0, predictableSurplus = 0, fixedIncome = 0, fixedExpenses = 0 }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState('');
@@ -50,6 +50,9 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
   const totalRemaining = goals.reduce((s, g) => s + Math.max(0, Number(g.target || 0) - Number(g.saved || 0)), 0);
   const overallPct = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
   const free = lifetimeSavings - totalSaved; // unallocated savings pool
+  // Prefer fixed (predictable) surplus when the user has tagged recurring income; else fall back to history.
+  const usingFixed = fixedIncome > 0;
+  const pace = usingFixed ? predictableSurplus : avgMonthlySavings;
 
   const datedGoals = goals.filter(g => g.deadline);
   const totalMonthlyNeed = datedGoals.reduce((s, g) => {
@@ -114,17 +117,20 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
   };
 
   // ---- feasibility ----
+  const basis = usingFixed
+    ? `fixed income ${formatINR(fixedIncome)} − fixed bills ${formatINR(fixedExpenses)} = ${formatINR(predictableSurplus)}/mo`
+    : `your ~${formatINR(avgMonthlySavings)}/mo average savings`;
   let feasibility = null;
   if (goals.length > 0) {
     if (datedGoals.length === 0) {
       feasibility = { tone: 'info', text: 'Add deadlines to your goals to see whether your savings can keep up.' };
-    } else if (avgMonthlySavings <= 0) {
-      feasibility = { tone: 'info', text: `Your deadlines need about ${formatINR(totalMonthlyNeed)}/mo. We can't gauge your pace yet — no positive savings in recent months.` };
+    } else if (pace <= 0) {
+      feasibility = { tone: 'info', text: `Your deadlines need about ${formatINR(totalMonthlyNeed)}/mo. Tag your salary as recurring income (or build some history) so we can gauge your pace.` };
     } else {
-      const diff = avgMonthlySavings - totalMonthlyNeed;
+      const diff = pace - totalMonthlyNeed;
       feasibility = diff >= 0
-        ? { tone: 'good', text: `You save ~${formatINR(avgMonthlySavings)}/mo; your deadlines need ${formatINR(totalMonthlyNeed)}/mo — ${formatINR(diff)}/mo to spare. 🎯` }
-        : { tone: 'warn', text: `Your deadlines need ${formatINR(totalMonthlyNeed)}/mo but you save ~${formatINR(avgMonthlySavings)}/mo — ${formatINR(Math.abs(diff))}/mo short. Consider extending a deadline or trimming spending.` };
+        ? { tone: 'good', text: `Based on ${basis}, you're on track — deadlines need ${formatINR(totalMonthlyNeed)}/mo, ${formatINR(diff)}/mo to spare. 🎯` }
+        : { tone: 'warn', text: `Based on ${basis}, deadlines need ${formatINR(totalMonthlyNeed)}/mo but you have ${formatINR(pace)}/mo — ${formatINR(Math.abs(diff))}/mo short. Extend a deadline or trim spending.` };
     }
   }
   const feasClass = { good: 'bg-emerald-50 text-emerald-800 border-emerald-200', warn: 'bg-amber-50 text-amber-800 border-amber-200', info: 'bg-slate-50 text-slate-600 border-slate-200' };
@@ -192,13 +198,13 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
             let badge = null;
             if (done) badge = { label: 'Complete', cls: 'bg-emerald-100 text-emerald-700' };
             else if (overdue) badge = { label: 'Overdue', cls: 'bg-rose-100 text-rose-700' };
-            else if (g.deadline && avgMonthlySavings > 0) {
-              if (requiredMonthly <= avgMonthlySavings) badge = { label: 'Achievable', cls: 'bg-emerald-100 text-emerald-700' };
-              else if (requiredMonthly <= avgMonthlySavings * 1.5) badge = { label: 'Tight', cls: 'bg-amber-100 text-amber-700' };
+            else if (g.deadline && pace > 0) {
+              if (requiredMonthly <= pace) badge = { label: 'Achievable', cls: 'bg-emerald-100 text-emerald-700' };
+              else if (requiredMonthly <= pace * 1.5) badge = { label: 'Tight', cls: 'bg-amber-100 text-amber-700' };
               else badge = { label: 'Ambitious', cls: 'bg-rose-100 text-rose-700' };
             }
-            const soloFinish = (!done && avgMonthlySavings > 0 && remaining > 0)
-              ? monthLabelFromNow(remaining / avgMonthlySavings) : null;
+            const soloFinish = (!done && pace > 0 && remaining > 0)
+              ? monthLabelFromNow(remaining / pace) : null;
 
             return (
               <div key={g.id} className="border border-slate-200 rounded-xl p-3 flex gap-3">
@@ -234,8 +240,8 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
             );
           })}
         </div>
-        {goals.length > 0 && avgMonthlySavings > 0 && (
-          <p className="text-[11px] text-slate-400 mt-3">*Projected finish assumes your whole average monthly savings goes to that goal — the app tracks total saved, not per-goal contributions.</p>
+        {goals.length > 0 && pace > 0 && (
+          <p className="text-[11px] text-slate-400 mt-3">*Projected finish assumes your whole monthly surplus ({usingFixed ? 'fixed income − fixed bills' : '6-month average'}) goes to that goal — the app tracks total saved, not per-goal contributions.</p>
         )}
       </div>
 
@@ -255,6 +261,13 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
             <h3 className="font-semibold text-brand-900/80 mb-1 flex items-center gap-2"><TrendingUp size={15} /> Avg / month</h3>
             <div className={`text-lg font-bold ${avgMonthlySavings >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(avgMonthlySavings)}</div>
           </div>
+          {fixedIncome > 0 && (
+            <div>
+              <h3 className="font-semibold text-brand-900/80 mb-1 flex items-center gap-2"><Repeat size={15} /> Predictable / mo</h3>
+              <div className={`text-lg font-bold ${predictableSurplus >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(predictableSurplus)}</div>
+              <div className="text-[11px] text-brand-700/70">fixed income − fixed bills</div>
+            </div>
+          )}
         </div>
         {goals.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-brand-200">

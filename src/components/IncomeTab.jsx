@@ -73,6 +73,7 @@ export default function IncomeTab({ incomes, setIncomes, allIncomes, cats, setCa
                   </div>
                   <div className="text-xs text-slate-500 flex flex-wrap gap-x-2 gap-y-1 items-center">
                     <span>{i.date}</span><span>· {cat?.name}</span>
+                    {i.recurring && <span className="text-brand-600">· Recurring</span>}
                     {i.reinvest && <span className="text-brand-600 flex items-center gap-1"><Repeat size={10} /> {i.isLoss ? 'From capital' : 'Reinvested'}</span>}
                   </div>
                 </div>

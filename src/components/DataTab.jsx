@@ -85,6 +85,7 @@ export default function DataTab({ expenses, setExpenses, incomes, setIncomes, ex
       type: i.isLoss ? 'Loss' : 'Profit',
       category: incCats.find(c => c.id === i.catId)?.name || i.catId,
       description: i.description || '', reinvest: i.reinvest ? 'Yes' : 'No',
+      recurring: i.recurring ? 'Yes' : 'No',
     }));
     downloadFile(`income-${todayStr()}.csv`, toCsv(rows), 'text/csv;charset=utf-8');
     showStatus(`Exported ${rows.length} income entries.`);
@@ -165,6 +166,7 @@ export default function DataTab({ expenses, setExpenses, incomes, setIncomes, ex
               catId, description: r.description || '',
               reinvest: /^(yes|true|1)$/i.test(r.reinvest || ''),
               isLoss: /^loss$/i.test(r.type || ''),
+              recurring: /^(yes|true|1)$/i.test(r.recurring || ''),
             });
           });
           setIncCats(newCats); setIncomes([...incomes, ...newEntries]);
