@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useFinanceData } from '../hooks/useFinanceData';
 import { useApp } from '../context/AppContext.jsx';
-import { formatINR, monthKey, currentMonth, NECESSITY_COLORS } from './shared';
+import { formatINR, monthKey, currentMonth, NECESSITY_COLORS, debtRemaining, simulateCombinedPayoff } from './shared';
 import Header from './Header.jsx';
 import Tabs from './Tabs.jsx';
 import Overview from './Overview.jsx';
@@ -183,6 +183,22 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
   );
   const surplusForDebt = fixedIncome > 0 ? fixedIncome - recurringNonDebt : avgMonthlySavings;
 
+  const goalsDebts = useMemo(() => {
+    const debtRem = debts.reduce((s, d) => s + debtRemaining(d), 0);
+    const debtTotal = debts.reduce((s, d) => s + Number(d.principal || 0), 0);
+    const goalRem = goals.reduce((s, g) => s + Math.max(0, Number(g.target || 0) - Number(g.saved || 0)), 0);
+    const goalTotal = goals.reduce((s, g) => s + Number(g.target || 0), 0);
+    const run = (priority) => simulateCombinedPayoff(debts, goals, surplusForDebt, { priority });
+    return {
+      hasAny: debts.length > 0 || goals.length > 0,
+      debt: { remaining: debtRem, total: debtTotal, pct: debtTotal > 0 ? (1 - debtRem / debtTotal) * 100 : 0 },
+      goal: { remaining: goalRem, total: goalTotal, pct: goalTotal > 0 ? ((goalTotal - goalRem) / goalTotal) * 100 : 0 },
+      surplus: surplusForDebt,
+      debtsFirst: run('debts'),
+      goalsFirst: run('goals'),
+    };
+  }, [debts, goals, surplusForDebt]);
+
   const netBySource = useMemo(() => {
     const m = {};
     activeIncomes.forEach(i => {
@@ -263,6 +279,7 @@ function DashboardInner({ data, user, selectedMonth, setSelectedMonth, activeTab
             insights={insights} fiftyThirtyTwenty={fiftyThirtyTwenty}
             netBySource={netBySource} necessityGrouped={necessityGrouped}
             categoryByNecessity={categoryByNecessity}
+            goalsDebts={goalsDebts}
           />
         )}
         {activeTab === 'expenses' && (

@@ -6,6 +6,7 @@ import StatCard from './StatCard.jsx';
 import FiftyBlock from './FiftyBlock.jsx';
 import ChartCard from './ChartCard.jsx';
 import NecessityGroupedView from './NecessityGroupedView.jsx';
+import GoalsDebtsSummary from './GoalsDebtsSummary.jsx';
 
 const tooltipStyle = {
   borderRadius: 12,
@@ -17,7 +18,7 @@ const tooltipStyle = {
 export default function Overview({
   totalIncome, reinvested, availableIncome, totalExpense, netSavings, consumedPct,
   recurringTotal, expenseBreakdown, incomeBreakdown, trendData, insights, fiftyThirtyTwenty,
-  netBySource, necessityGrouped, categoryByNecessity,
+  netBySource, necessityGrouped, categoryByNecessity, goalsDebts,
 }) {
   return (
     <div className="space-y-6">
@@ -41,6 +42,8 @@ export default function Overview({
           </div>
         </div>
       )}
+
+      <GoalsDebtsSummary summary={goalsDebts} />
 
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">

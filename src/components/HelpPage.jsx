@@ -59,6 +59,7 @@ export default function HelpPage({ onClose }) {
           <UL>
             <li><Term>Stat cards</Term> — Total Income, Reinvested, <Term>Available</Term> (income − reinvested), Expenses (with your fixed/recurring portion), and the highlighted <Term>Net Savings</Term>.</li>
             <li><Term>Insights</Term> — auto notes like spending up/down vs last month, top categories, and savings rate.</li>
+            <li><Term>Goals &amp; Debts outlook</Term> — a forward-looking summary of how much debt and goal funding remains, with a projected <Term>“everything done by”</Term> date and a <Term>Debts-first / Goals-first</Term> toggle (full controls live on the Goals and Debts tabs).</li>
             <li><Term>Income Consumed by Expenses</Term> — how much of available income your spending used.</li>
             <li><Term>50 / 30 / 20 Rule</Term> — your Needs / Wants+Impulse / Savings split vs the classic targets.</li>
             <li><Term>Breakdown donuts</Term>, <Term>Net by Income Source</Term>, <Term>Spending by Necessity</Term> (drill into Need/Want/Impulse → category → entries), and a <Term>6-month trend</Term>.</li>

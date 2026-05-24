@@ -122,3 +122,70 @@ export function simulateFocusedPayoff(debts, surplus, order) {
   if (items.some((d) => d.bal > 0)) return { months: Infinity, perDebt, totalInterest: Infinity };
   return { months: month, perDebt, totalInterest };
 }
+
+// Combined goals + debts payoff projection from a monthly surplus. Each month:
+// pay every debt its EMI, then route the leftover surplus ("spare") by `priority`
+// — to extra debt payments or to goal funding first; the other gets what remains.
+// Returns whole months from now (Infinity if unreachable) for debt-free,
+// goals-funded, and both-done (combined = the later of the two).
+export function simulateCombinedPayoff(
+  debts, goals, surplus,
+  { priority = 'debts', debtOrder = PAYOFF_ORDERS.avalanche, MAX = 1200 } = {},
+) {
+  const items = [...debts]
+    .filter((d) => debtRemaining(d) > 0)
+    .sort(debtOrder)
+    .map((d) => ({ bal: debtRemaining(d), apr: Number(d.apr) || 0, emi: Number(d.emi) || 0 }));
+  let goalRemaining = goals.reduce(
+    (s, g) => s + Math.max(0, (Number(g.target) || 0) - (Number(g.saved) || 0)), 0);
+
+  const S = Number(surplus) || 0;
+  const debtsLeft = () => items.some((d) => d.bal > 0);
+  // Cascade an extra payment to debts in priority order; returns the unspent amount.
+  const toDebts = (amt) => {
+    for (const d of items) {
+      if (amt <= 0) break;
+      if (d.bal <= 0) continue;
+      const give = Math.min(d.bal, amt);
+      d.bal -= give; amt -= give;
+    }
+    return amt; // leftover
+  };
+
+  let debtFreeMonth = items.length === 0 ? 0 : null;
+  let goalsFundedMonth = goalRemaining <= 1e-6 ? 0 : null;
+  let month = 0;
+  // One loop until both are done. Once debts clear, their EMIs free up and the
+  // whole surplus flows to goals — so a tight surplus still reaches goals, just
+  // later. Truly unreachable (debt whose EMI can't beat its interest, or no
+  // surplus for goals) hits the MAX guard and stays null → Infinity.
+  while ((debtsLeft() || goalRemaining > 1e-6) && month < MAX) {
+    month++;
+    // 1. mandatory EMIs (interest accrues, principal reduces)
+    let emiSpent = 0;
+    for (const d of items) {
+      if (d.bal <= 0) continue;
+      const interest = d.bal * (d.apr / 12 / 100);
+      const pay = Math.min(d.emi, d.bal + interest);
+      emiSpent += pay;
+      d.bal = Math.max(0, d.bal - (pay - interest));
+    }
+    // 2. route the spare by priority
+    let spare = Math.max(0, S - emiSpent);
+    if (priority === 'goals') {
+      const toGoals = Math.min(spare, goalRemaining);
+      goalRemaining -= toGoals; spare -= toGoals;
+      spare = toDebts(spare);
+    } else {
+      spare = toDebts(spare);
+      const toGoals = Math.min(spare, goalRemaining);
+      goalRemaining -= toGoals; spare -= toGoals;
+    }
+    // 3. record milestones
+    if (debtFreeMonth === null && !debtsLeft()) debtFreeMonth = month;
+    if (goalsFundedMonth === null && goalRemaining <= 1e-6) goalsFundedMonth = month;
+  }
+  if (debtFreeMonth === null) debtFreeMonth = Infinity;
+  if (goalsFundedMonth === null) goalsFundedMonth = Infinity;
+  return { debtFreeMonth, goalsFundedMonth, combinedMonth: Math.max(debtFreeMonth, goalsFundedMonth) };
+}
