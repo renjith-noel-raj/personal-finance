@@ -71,14 +71,13 @@ On first launch you choose a backend (changeable later):
 
 ## Deployment
 
-The app is a static SPA. It's currently hosted on **GitHub Pages**:
+The app is a static SPA hosted on **GitHub Pages** (served from the `gh-pages` branch). One command builds and publishes:
 
 ```bash
-npm run build
-npx gh-pages -d dist -t      # publishes dist/ to the gh-pages branch
+npm run deploy     # = vite build + gh-pages -d dist -t  (atomic push to gh-pages)
 ```
 
-`vite.config.js` sets `base: '/personal-finance/'` for the project‑site path. (A `netlify.toml` is also included if you prefer Netlify — `netlify deploy --prod --dir=dist`.)
+`vite.config.js` sets `base: '/personal-finance/'` for the project‑site path, and `public/.nojekyll` ships in every build so Pages serves the assets as‑is. Because this is a PWA, always deploy the **whole** `dist/` at once (which `npm run deploy` does) so the service worker and the hashed bundle stay in sync. (A `netlify.toml` is also included if you prefer Netlify — `netlify deploy --prod --dir=dist`.)
 
 ---
 
