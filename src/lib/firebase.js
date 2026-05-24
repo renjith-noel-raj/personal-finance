@@ -2,7 +2,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut,
 } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 
 let app = null;
 let auth = null;
@@ -15,7 +15,16 @@ export function initFirebase(config) {
     app = getApps()[0];
   }
   auth = getAuth(app);
-  db = getFirestore(app);
+  // ignoreUndefinedProperties lets Firestore drop undefined fields instead of
+  // rejecting the whole write. The data model intentionally stores blank
+  // apr/emi (and other optional fields) as undefined; without this, every
+  // debt created with a blank APR/EMI makes setDoc throw and never persists.
+  try {
+    db = initializeFirestore(app, { ignoreUndefinedProperties: true });
+  } catch {
+    // Already initialized (e.g. re-init on settings change) — reuse it.
+    db = getFirestore(app);
+  }
   return { app, auth, db };
 }
 
