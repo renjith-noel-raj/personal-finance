@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Edit2, PiggyBank, Target, TrendingUp } from 'lucide-react';
 import { formatINR } from './shared';
+import Modal from './Modal.jsx';
 
 function ProgressRing({ value, size = 64, stroke = 7, color = '#0891b2', track = '#e2e8f0', children }) {
   const r = (size - stroke) / 2;
@@ -37,6 +38,10 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
   const [target, setTarget] = useState('');
   const [saved, setSaved] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [contributeGoal, setContributeGoal] = useState(null);
+  const [contributeAmount, setContributeAmount] = useState('');
+  const [allocGoalId, setAllocGoalId] = useState('');
+  const [allocAmount, setAllocAmount] = useState('');
 
   const resetForm = () => { setName(''); setTarget(''); setSaved(''); setDeadline(''); setEditingId(null); setShowForm(false); };
 
@@ -63,6 +68,24 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
 
   const updateSaved = (id, amount) => setGoals(goals.map(g => g.id === id ? { ...g, saved: Number(amount) } : g));
   const remove = (id) => setGoals(goals.filter(g => g.id !== id));
+
+  const contribute = (id, amount) => {
+    const amt = Number(amount);
+    if (!amt || amt <= 0) return;
+    setGoals(goals.map(g => g.id === id ? { ...g, saved: Number(g.saved || 0) + amt } : g));
+  };
+  const openContribute = (g) => {
+    const remaining = Math.max(0, Number(g.target || 0) - Number(g.saved || 0));
+    const suggested = Math.max(0, Math.min(netSavings > 0 ? netSavings : 0, remaining));
+    setContributeGoal(g);
+    setContributeAmount(suggested ? String(Math.round(suggested)) : '');
+  };
+  const doAllocate = () => {
+    const id = allocGoalId || goals[0]?.id;
+    if (!id) return;
+    contribute(id, allocAmount);
+    setAllocAmount('');
+  };
 
   // ---- aggregations ----
   const totalTarget = goals.reduce((s, g) => s + Number(g.target || 0), 0);
@@ -192,10 +215,13 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
                     {g.deadline && <span>Deadline: {g.deadline}</span>}
                     {requiredMonthly !== null && !done && <span className="text-slate-700 font-medium">Need {formatINR(requiredMonthly)}/mo{monthsLeft > 0 ? ` · ${monthsLeft} mo left` : ''}</span>}
                     {soloFinish && <span className="text-brand-700">≈ {soloFinish} at your pace*</span>}
-                    <label className="flex items-center gap-1 ml-auto">
-                      <span>Update saved:</span>
-                      <input type="number" value={g.saved} onChange={e => updateSaved(g.id, e.target.value)} className="input w-24 px-2 py-1" />
-                    </label>
+                    <div className="flex items-center gap-3 ml-auto">
+                      {!done && <button onClick={() => openContribute(g)} className="text-brand-700 font-semibold hover:text-brand-800">+ Contribute</button>}
+                      <label className="flex items-center gap-1">
+                        <span>Saved:</span>
+                        <input type="number" value={g.saved} onChange={e => updateSaved(g.id, e.target.value)} className="input w-24 px-2 py-1" />
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -207,17 +233,50 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
         )}
       </div>
 
-      {/* Savings context */}
-      <div className="bg-brand-50 border border-brand-200 rounded-2xl p-4 flex flex-wrap items-center gap-x-8 gap-y-3">
-        <div>
-          <h3 className="font-semibold text-brand-900 mb-1 flex items-center gap-2"><PiggyBank size={16} /> This Month's Savings</h3>
-          <div className={`text-2xl font-bold ${netSavings >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(netSavings)}</div>
+      {/* Savings context + allocate */}
+      <div className="bg-brand-50 border border-brand-200 rounded-2xl p-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+          <div>
+            <h3 className="font-semibold text-brand-900 mb-1 flex items-center gap-2"><PiggyBank size={16} /> This Month's Savings</h3>
+            <div className={`text-2xl font-bold ${netSavings >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(netSavings)}</div>
+          </div>
+          <div>
+            <h3 className="font-semibold text-brand-900 mb-1 flex items-center gap-2"><TrendingUp size={16} /> Avg / month (6 mo)</h3>
+            <div className={`text-2xl font-bold ${avgMonthlySavings >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(avgMonthlySavings)}</div>
+          </div>
         </div>
-        <div>
-          <h3 className="font-semibold text-brand-900 mb-1 flex items-center gap-2"><TrendingUp size={16} /> Avg / month (6 mo)</h3>
-          <div className={`text-2xl font-bold ${avgMonthlySavings >= 0 ? 'text-brand-900' : 'text-rose-600'}`}>{formatINR(avgMonthlySavings)}</div>
-        </div>
+        {goals.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-brand-200">
+            <span className="text-sm font-medium text-brand-900">Allocate to goal:</span>
+            <select value={allocGoalId || goals[0]?.id || ''} onChange={e => setAllocGoalId(e.target.value)} className="input w-auto px-2 py-2 bg-white">
+              {goals.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+            <input type="number" value={allocAmount} onChange={e => setAllocAmount(e.target.value)}
+              placeholder={netSavings > 0 ? `₹ ${Math.round(netSavings)}` : '₹ amount'} className="input w-28 px-2 py-2 bg-white" />
+            {netSavings > 0 && <button onClick={() => setAllocAmount(String(Math.round(netSavings)))} className="text-xs link">use ₹{Math.round(netSavings)}</button>}
+            <button onClick={doAllocate} className="btn-primary">Add</button>
+          </div>
+        )}
       </div>
+
+      <Modal
+        open={!!contributeGoal}
+        title={contributeGoal ? `Contribute to ${contributeGoal.name}` : ''}
+        confirmLabel="Add to goal"
+        onConfirm={() => { contribute(contributeGoal.id, contributeAmount); setContributeGoal(null); }}
+        onCancel={() => setContributeGoal(null)}
+      >
+        {contributeGoal && (() => {
+          const remaining = Math.max(0, Number(contributeGoal.target || 0) - Number(contributeGoal.saved || 0));
+          return (
+            <div className="mt-3">
+              <div className="text-xs text-slate-500 mb-2">Remaining: {formatINR(remaining)} · This month's savings: {formatINR(netSavings)}</div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">Amount to add (₹)</label>
+              <input type="number" value={contributeAmount} onChange={e => setContributeAmount(e.target.value)} className="input" />
+            </div>
+          );
+        })()}
+      </Modal>
     </div>
   );
 }
