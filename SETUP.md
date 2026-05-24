@@ -132,7 +132,7 @@ const firebaseConfig = {
 ## Verify it's actually working
 
 1. Add an expense in the app.
-2. Open the browser console (**F12** / Cmd+Option+I → **Console**). You should see **no** lines starting with `[PF] Firestore ... failed`.
+2. Open the browser console (**F12** / Cmd+Option+I → **Console**). You should see a `[PF] SAVE key=...` line and **no** red `[PF] SAVE failed` or `[PF] LOAD failed` lines.
 3. In the Firebase Console: **Firestore → Data** → expand **users → (your id) → data → expenses**. Your entry should be inside the **`value`** field.
 
 If all three check out, you're done. 🎉
