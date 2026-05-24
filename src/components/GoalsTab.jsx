@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, PiggyBank, Target, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, Edit2, PiggyBank, Target, TrendingUp } from 'lucide-react';
 import { formatINR } from './shared';
 
 function ProgressRing({ value, size = 64, stroke = 7, color = '#0891b2', track = '#e2e8f0', children }) {
@@ -32,16 +32,35 @@ const monthLabelFromNow = (months) => {
 
 export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySavings = 0 }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState('');
   const [target, setTarget] = useState('');
   const [saved, setSaved] = useState('');
   const [deadline, setDeadline] = useState('');
 
-  const add = () => {
-    if (!name.trim() || !target) return;
-    setGoals([...goals, { id: Date.now().toString(), name, target: Number(target), saved: Number(saved) || 0, deadline }]);
-    setName(''); setTarget(''); setSaved(''); setDeadline(''); setShowForm(false);
+  const resetForm = () => { setName(''); setTarget(''); setSaved(''); setDeadline(''); setEditingId(null); setShowForm(false); };
+
+  const startAdd = () => {
+    if (showForm && !editingId) { setShowForm(false); return; }
+    setEditingId(null); setName(''); setTarget(''); setSaved(''); setDeadline(''); setShowForm(true);
   };
+
+  const startEdit = (g) => {
+    setEditingId(g.id);
+    setName(g.name); setTarget(String(g.target ?? '')); setSaved(String(g.saved ?? '')); setDeadline(g.deadline || '');
+    setShowForm(true);
+  };
+
+  const save = () => {
+    if (!name.trim() || !target) return;
+    if (editingId) {
+      setGoals(goals.map(g => g.id === editingId ? { ...g, name, target: Number(target), saved: Number(saved) || 0, deadline } : g));
+    } else {
+      setGoals([...goals, { id: Date.now().toString(), name, target: Number(target), saved: Number(saved) || 0, deadline }]);
+    }
+    resetForm();
+  };
+
   const updateSaved = (id, amount) => setGoals(goals.map(g => g.id === id ? { ...g, saved: Number(amount) } : g));
   const remove = (id) => setGoals(goals.filter(g => g.id !== id));
 
@@ -107,20 +126,21 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
       <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="panel-title flex items-center gap-2"><Target size={16} className="text-brand-600" /> Savings Goals</h3>
-          <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+          <button onClick={startAdd} className="btn-primary">
             <Plus size={14} /> Goal
           </button>
         </div>
 
         {showForm && (
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="md:col-span-2 text-xs font-semibold text-slate-500">{editingId ? 'Edit goal' : 'New goal'}</div>
             <input type="text" placeholder="Goal name" value={name} onChange={e => setName(e.target.value)} className="input md:col-span-2" />
             <input type="number" placeholder="Target (₹)" value={target} onChange={e => setTarget(e.target.value)} className="input" />
             <input type="number" placeholder="Already saved (₹)" value={saved} onChange={e => setSaved(e.target.value)} className="input" />
             <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="input md:col-span-2" />
             <div className="md:col-span-2 flex justify-end gap-2">
-              <button onClick={() => setShowForm(false)} className="btn-ghost">Cancel</button>
-              <button onClick={add} className="btn-primary">Add Goal</button>
+              <button onClick={resetForm} className="btn-ghost">Cancel</button>
+              <button onClick={save} className="btn-primary">{editingId ? 'Update Goal' : 'Add Goal'}</button>
             </div>
           </div>
         )}
@@ -162,7 +182,10 @@ export default function GoalsTab({ goals, setGoals, netSavings, avgMonthlySaving
                       </div>
                       <div className="text-xs text-slate-500">{formatINR(g.saved)} of {formatINR(g.target)} · {formatINR(remaining)} to go</div>
                     </div>
-                    <button onClick={() => remove(g.id)} className="text-slate-400 hover:text-rose-600 p-1 flex-shrink-0"><Trash2 size={14} /></button>
+                    <div className="flex items-center flex-shrink-0">
+                      <button onClick={() => startEdit(g)} className="text-slate-400 hover:text-brand-600 p-1" aria-label="Edit goal"><Edit2 size={14} /></button>
+                      <button onClick={() => remove(g.id)} className="text-slate-400 hover:text-rose-600 p-1" aria-label="Delete goal"><Trash2 size={14} /></button>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-2">
