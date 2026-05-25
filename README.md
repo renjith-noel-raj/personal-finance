@@ -2,9 +2,23 @@
 
 A **privacy-first** personal finance tracker — track expenses, income, savings, goals, and debt payoff, with your data living **on your own device or in your own cloud**. There is no app-owned server: you pick where your data is stored at runtime.
 
-🔗 **Live app:** https://renjith-noel-raj.github.io/personal-finance/
+🔗 **Live app:** https://renjith-noel-raj.github.io/personal-finance/ — open it and click **"Explore with sample data"** to see a fully populated dashboard in one tap (no signup).
 
-> Built with Vite + React 18, Tailwind CSS, Recharts, and an installable PWA. Currency is INR (`₹`).
+> Vite + React 18 · Tailwind CSS · Recharts · installable PWA · Dexie/Firestore behind one storage seam · INR (`₹`).
+
+---
+
+## Case study (at a glance)
+
+| | |
+|---|---|
+| **Problem** | Most finance trackers either lock your data on a vendor's server or stop at a plain ledger. Goal: a tracker that is genuinely *yours* (you choose where data lives) **and** does real planning math — not just totals. |
+| **Role** | Sole designer & developer — product, architecture, UI, and the finance engine. |
+| **Timeline** | Built solo in a short, focused sprint. <!-- Adjust to the real figure; the git history spans ~2 days. --> |
+| **Standout work** | (1) A **storage abstraction** that lets the same app run fully local *or* on the user's own Firebase — chosen at runtime, no code change. (2) An **interest-aware debt/goals payoff engine** (avalanche/snowball/deadline, EMI floors, combined projection) written as pure, unit-tested functions. |
+| **Outcome** | A production-grade, offline-capable PWA deployed on GitHub Pages, with the money math covered by a Vitest suite. |
+
+<!-- Screenshots: add 2–3 images (Overview, Debts, Goals) to docs/screenshots/ and embed them here, e.g. ![Overview](docs/screenshots/overview.png) -->
 
 ---
 
@@ -32,6 +46,50 @@ A full, feature-by-feature **how-to guide is built into the app** — click the 
 
 ---
 
+## Architecture
+
+The app's defining decision is a **storage seam**: `createStorage(mode, user)` returns one uniform `{ get, set, delete, clearAll }` interface, backed by either local IndexedDB or the user's own Firestore. Everything above it is backend-agnostic, so "where my data lives" is a runtime choice rather than a rewrite.
+
+```
+   UI (tabs, forms)
+        │
+        ▼
+   Dashboard.jsx ............ derives ALL metrics in useMemo
+   (50/30/20, necessity,      (one place to reason about correctness)
+    trends, budgets,
+    payoff projections)
+        │  reads/writes 9 state slices
+        ▼
+   useFinanceData (hook) .... load-once + auto-persist,
+                              load-gated so a failed read can't clobber data
+        │  uniform { get, set, delete, clearAll }
+        ▼
+   createStorage(mode, user)  ◀── the central seam
+        ├──────────────┐
+        ▼              ▼
+   IndexedDB        Firestore
+   (Dexie, local)   (user's own Firebase project)
+```
+
+### Engineering highlights
+
+- **One storage seam, two backends.** [src/lib/storage.js](src/lib/storage.js) decouples the whole app from persistence; local-vs-cloud is selected at runtime. App settings live separately in `localStorage` so they survive a backend switch.
+- **A pure, unit-tested finance engine.** All amortization/payoff math is pure functions in [src/components/shared.js](src/components/shared.js) — interest-aware payoff, avalanche/snowball/deadline strategies, EMI floors, and a combined goals+debts projection — covered by the Vitest suite in [src/components/shared.test.js](src/components/shared.test.js) against hand-computed values.
+- **Persistence that protects your data.** [src/hooks/useFinanceData.js](src/hooks/useFinanceData.js) gates auto-save on a `loaded` flag, so a flaky/failed read never overwrites stored finances.
+- **Derived-state discipline.** Presentational tab components stay dumb; the Dashboard computes everything, which keeps the tricky calculations in one reviewable place.
+
+---
+
+## Scope & decisions
+
+Deliberate boundaries, not unfinished edges:
+
+- **Privacy over convenience — entry is manual by design.** The app asks for **no bank credentials** and integrates **no third-party aggregator**, which is exactly why your data can stay entirely on your device. The planned next step keeps that guarantee: a **fully client-side import pipeline** (paste/parse a bank SMS, import a statement CSV) — never a server that sees your transactions.
+- **A flow tracker, not a net-worth aggregator.** It models income/expense flows, goals, and debts — not live account balances or investment holdings.
+- **INR-first.** Currency formatting is centralized in `formatINR` (en-IN, `₹`), so localizing later is a one-function change.
+
+---
+
 ## Quick start (local development)
 
 ```bash
@@ -46,7 +104,16 @@ npm run build      # production build → dist/
 npm run preview    # serve the production build locally
 ```
 
-> No test runner or linter is configured — only `dev` / `build` / `preview`.
+---
+
+## Testing
+
+```bash
+npm test           # run the Vitest suite once
+npm run test:watch # watch mode
+```
+
+The suite focuses on the **money math** — debt amortization, payoff-strategy ordering, the combined goals+debts projection ([src/components/shared.js](src/components/shared.js)), and the demo-data generator. These are the parts where a wrong answer *is* a wrong financial projection, so they're asserted against values computed by hand rather than read back from the implementation.
 
 ---
 

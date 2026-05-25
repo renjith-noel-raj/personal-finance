@@ -1,9 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
-import { Wallet, Cloud, HardDrive } from 'lucide-react';
+import { Wallet, Cloud, HardDrive, Sparkles } from 'lucide-react';
+import { hasLocalData, seedLocalSampleData } from '../lib/sampleData';
 
 export default function SetupScreen() {
   const { chooseStorageMode } = useApp();
+  const [seeding, setSeeding] = useState(false);
+
+  const exploreWithSampleData = async () => {
+    if (seeding) return;
+    // SetupScreen only shows before a backend is chosen, but a returning local
+    // user could still have data here — don't silently overwrite it.
+    if (await hasLocalData()) {
+      const ok = window.confirm(
+        'This will replace the data currently stored in this browser with a sample dataset. Continue?'
+      );
+      if (!ok) return;
+    }
+    setSeeding(true);
+    try {
+      await seedLocalSampleData();
+      chooseStorageMode('local'); // local needs no sign-in → straight to the dashboard
+    } catch (e) {
+      console.error('[PF] sample-data seed failed:', e);
+      setSeeding(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -42,6 +64,17 @@ export default function SetupScreen() {
               <li>○ One-time setup needed</li>
             </ul>
           </button>
+        </div>
+
+        <div className="mt-4 text-center">
+          <button onClick={exploreWithSampleData} disabled={seeding}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-800 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 rounded-lg px-3 py-2">
+            <Sparkles size={16} />
+            {seeding ? 'Loading sample data…' : 'Explore with sample data'}
+          </button>
+          <p className="text-xs text-slate-400 mt-1">
+            Loads a demo household locally so you can see the dashboard in action. Clearable anytime in Data → Danger zone.
+          </p>
         </div>
 
         <p className="text-xs text-slate-400 text-center mt-6">
